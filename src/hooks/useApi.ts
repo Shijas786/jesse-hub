@@ -12,9 +12,17 @@ export function useApi<T>(
         queryFn: async () => {
             const response = await fetch(url);
             if (!response.ok) {
-                throw new Error(`Request failed: ${response.status}`);
+                const errorData = await response.json().catch(() => ({}));
+                const errorMessage = errorData.error || errorData.details || `Request failed: ${response.status}`;
+                console.error(`API Error [${url}]:`, errorMessage);
+                throw new Error(errorMessage);
             }
-            return (await response.json()) as T;
+            const data = await response.json();
+            if (data.error) {
+                console.error(`API Error [${url}]:`, data.error, data.details);
+                throw new Error(data.error);
+            }
+            return data as T;
         },
         staleTime: 60 * 1000,
         ...options,
