@@ -265,32 +265,33 @@ export async function getPriceHistory(days = 30) {
 
 /**
  * GM events from JesseGM contract.
- * Uses the standard getLogs endpoint (GET /v1/{chainName}/events/) which supports filtering by address.
- * Note: This endpoint doesn't support pagination, so we filter and limit results client-side.
- * For better performance with large datasets, consider using getLogEventsByAddressByPage() instead.
+ * Uses getLogEventsByAddressByPage which is the recommended SDK method for contract events.
+ * This method supports pagination and is optimized for fetching events from a specific contract.
  */
 export async function getGmEvents(pageSize = 200): Promise<GmEventItem[]> {
     try {
         const gmContract = requireEnv('gmContractAddress');
         const covalent = getClient();
 
-        const response = await covalent.BaseService.getLogs(BASE_CHAIN, {
-            startingBlock: 1, // Base chain genesis block
-            endingBlock: 'latest',
-            address: gmContract,
-            skipDecode: false, // We need decoded events to filter for GMed events
-        });
+        const response = await covalent.BaseService.getLogEventsByAddressByPage(
+            BASE_CHAIN,
+            gmContract,
+            {
+                startingBlock: 1, // Base chain genesis block
+                endingBlock: 'latest',
+                pageSize,
+                pageNumber: 0,
+            }
+        );
 
         if (!response.data || response.error) {
             throw new Error(response.error_message || 'Failed to fetch GM events');
         }
 
         // Map SDK response to our expected format
-        // Filter for GMed events and limit to pageSize
-        // Note: getLogs() returns all matching logs, so we filter client-side
+        // Filter for GMed events (in case there are other events from the contract)
         const allItems = (response.data.items || [])
             .filter((item) => item.decoded?.name === 'GMed')
-            .slice(0, pageSize)
             .map((item) => ({
                 block_signed_at: item.block_signed_at 
                     ? (item.block_signed_at instanceof Date 
