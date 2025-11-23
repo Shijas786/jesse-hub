@@ -14,8 +14,8 @@ const projectId = process.env.NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID || '';
 const metadata = {
     name: 'Jesse Hub',
     description: 'Holder analytics and GM streak system for Jesse token',
-    url: 'https://jessehub.com',
-    icons: ['https://jessehub.com/icon.png'],
+    url: 'https://jesse-hub.vercel.app',
+    icons: ['https://jesse-hub.vercel.app/icon.png'],
 };
 
 const wagmiAdapter = new WagmiAdapter({
