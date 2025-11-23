@@ -1,7 +1,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { NeonCard } from '../NeonCard';
+import { DoodleCard } from '@/components/DoodleCard';
 import { AnimatedCounter } from '../AnimatedCounter';
 import { useJesseStats } from '@/hooks/useJesseStats';
 
@@ -9,16 +9,16 @@ export function QuickStats() {
     const { totalHolders, totalSupply, topHolder, isLoading, isError } = useJesseStats();
 
     const stats = [
-        { label: 'Total Holders', value: totalHolders, suffix: '' },
-        { label: 'Total Supply', value: totalSupply, suffix: ' JESSE', decimals: 0 },
-        { label: 'Top Holder %', value: topHolder, suffix: '%', decimals: 2 },
+        { label: 'Holders', value: totalHolders, suffix: '', color: 'blue' },
+        { label: 'Supply', value: totalSupply, suffix: '', decimals: 0, color: 'pink' },
+        { label: 'Whale %', value: topHolder, suffix: '%', decimals: 1, color: 'purple' },
     ];
 
     if (isLoading) {
         return (
             <div className="grid grid-cols-3 gap-3 mb-8">
                 {[1, 2, 3].map((i) => (
-                    <div key={i} className="glass-card p-4 h-24 animate-pulse" />
+                    <div key={i} className="h-24 bg-[#111] border-2 border-[#333] rounded-3xl animate-pulse" />
                 ))}
             </div>
         );
@@ -26,16 +26,16 @@ export function QuickStats() {
 
     if (isError) {
         return (
-            <NeonCard className="mb-8 p-4 text-center">
-                <p className="text-red-400 text-sm">
-                    ⚠️ Failed to load stats. Please check environment variables in Vercel.
+            <DoodleCard color="pink" className="mb-8 p-4 text-center">
+                <p className="text-red-300 text-sm font-bold">
+                    ⚠️ Failed to load stats
                 </p>
-            </NeonCard>
+            </DoodleCard>
         );
     }
 
     return (
-        <div className="grid grid-cols-3 gap-3 mb-8">
+        <div className="grid grid-cols-3 gap-2 mb-8">
             {stats.map((stat, index) => (
                 <motion.div
                     key={stat.label}
@@ -43,16 +43,16 @@ export function QuickStats() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
                 >
-                    <NeonCard className="text-center">
-                        <p className="text-xs text-white/60 mb-2">{stat.label}</p>
-                        <p className="text-lg font-bold text-neon-blue">
+                    <DoodleCard color={stat.color as any} className="text-center p-2 h-full flex flex-col justify-center">
+                        <p className="text-[10px] uppercase tracking-wider font-bold opacity-70 mb-1">{stat.label}</p>
+                        <p className="text-base font-black leading-tight break-words">
                             <AnimatedCounter
                                 value={stat.value}
                                 decimals={stat.decimals}
                                 suffix={stat.suffix}
                             />
                         </p>
-                    </NeonCard>
+                    </DoodleCard>
                 </motion.div>
             ))}
         </div>

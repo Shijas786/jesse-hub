@@ -4,40 +4,32 @@
 
 @layer base {
   * {
-    @apply border-dark-border;
+    @apply border-base-border;
   }
   
   body {
-    @apply bg-dark-bg text-white;
+    @apply bg-base-dark text-white overflow-x-hidden;
   }
 }
 
 @layer utilities {
-  .glass-card {
-    @apply bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl;
+  .doodle-card {
+    @apply bg-base-card border-2 border-base-border rounded-3xl transition-all duration-300;
+    box-shadow: 4px 4px 0px 0px rgba(0, 240, 255, 0.2);
   }
 
-  .neon-glow {
-    box-shadow: 0 0 20px rgba(0, 240, 255, 0.3);
+  .doodle-card:hover {
+    box-shadow: 4px 4px 0px 0px rgba(0, 240, 255, 0.6);
+    transform: translate(-2px, -2px);
   }
 
-  .neon-text {
-    text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+  .doodle-text {
+    text-shadow: 2px 2px 0px rgba(0, 240, 255, 0.4);
   }
 
-  .gradient-text {
-    @apply bg-clip-text text-transparent bg-gradient-neon;
+  .text-outline {
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.2);
   }
-}
-
-.particles-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-  z-index: 0;
 }
 
 .scrollbar-hide::-webkit-scrollbar {

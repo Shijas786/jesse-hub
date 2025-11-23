@@ -5,39 +5,45 @@ import { usePathname } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 const navItems = [
-    { href: '/', icon: '🏠', label: 'Home' },
-    { href: '/holders', icon: '👥', label: 'Holders' },
-    { href: '/gm', icon: '🔥', label: 'GM' },
-    { href: '/traders', icon: '📊', label: 'Traders' },
-    { href: '/leaderboards', icon: '🏆', label: 'Ranks' },
+    { href: '/', icon: '🏠', label: 'Home', color: 'bg-base-cyan' },
+    { href: '/holders', icon: '👥', label: 'Holders', color: 'bg-doodle-pink' },
+    { href: '/gm', icon: '🔥', label: 'GM', color: 'bg-doodle-orange' },
+    { href: '/traders', icon: '📊', label: 'Traders', color: 'bg-doodle-purple' },
+    { href: '/leaderboards', icon: '🏆', label: 'Ranks', color: 'bg-doodle-yellow' },
 ];
 
 export function BottomNav() {
     const pathname = usePathname();
 
     return (
-        <nav className="fixed bottom-0 left-0 right-0 z-50 glass-card border-t border-white/10">
-            <div className="max-w-md mx-auto px-4 py-3">
-                <div className="flex items-center justify-around">
+        <nav className="fixed bottom-6 left-0 right-0 z-50 pointer-events-none">
+            <div className="max-w-sm mx-auto px-4 pointer-events-auto">
+                <motion.div 
+                    className="bg-[#111]/90 backdrop-blur-xl border-2 border-base-border rounded-full p-2 shadow-doodle flex items-center justify-between"
+                    initial={{ y: 100 }}
+                    animate={{ y: 0 }}
+                    transition={{ type: 'spring', damping: 20 }}
+                >
                     {navItems.map((item) => {
-                        const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+                        const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                         return (
-                            <Link key={item.href} href={item.href}>
+                            <Link key={item.href} href={item.href} className="relative">
                                 <motion.div
-                                    className="flex flex-col items-center gap-1 relative"
+                                    className={`
+                                        relative flex items-center justify-center w-12 h-12 rounded-full
+                                        ${isActive ? item.color : 'bg-transparent hover:bg-white/5'}
+                                    `}
                                     whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.95 }}
+                                    whileTap={{ scale: 0.9 }}
                                 >
-                                    <div className={`text-2xl ${isActive ? 'filter drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]' : ''}`}>
+                                    <span className={`text-2xl ${isActive ? 'grayscale-0' : 'grayscale opacity-60'}`}>
                                         {item.icon}
-                                    </div>
-                                    <span className={`text-xs ${isActive ? 'text-neon-blue font-semibold' : 'text-white/60'}`}>
-                                        {item.label}
                                     </span>
+                                    
                                     {isActive && (
                                         <motion.div
                                             layoutId="activeTab"
-                                            className="absolute -bottom-3 left-0 right-0 h-1 bg-neon-blue rounded-full"
+                                            className="absolute inset-0 rounded-full border-2 border-black opacity-20"
                                             transition={{ type: 'spring', stiffness: 380, damping: 30 }}
                                         />
                                     )}
@@ -45,7 +51,7 @@ export function BottomNav() {
                             </Link>
                         );
                     })}
-                </div>
+                </motion.div>
             </div>
         </nav>
     );

@@ -1,25 +1,22 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import { DoodleCard } from '@/components/DoodleCard';
 import { ReactNode } from 'react';
 
 interface MetricTileProps {
     label: string;
     value: ReactNode;
     subtext?: string;
+    color?: 'blue' | 'pink' | 'purple' | 'green' | 'orange' | 'yellow';
 }
 
-export function MetricTile({ label, value, subtext }: MetricTileProps) {
+export function MetricTile({ label, value, subtext, color = 'blue' }: MetricTileProps) {
     return (
-        <motion.div
-            className="glass-card p-4 flex flex-col gap-2"
-            whileHover={{ scale: 1.02 }}
-            transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        >
-            <p className="text-xs uppercase tracking-wide text-white/60">{label}</p>
-            <div className="text-2xl font-bold text-neon-blue">{value}</div>
-            {subtext && <p className="text-xs text-white/50">{subtext}</p>}
-        </motion.div>
+        <DoodleCard color={color} className="p-3 flex flex-col gap-1" animate>
+            <p className="text-[10px] uppercase font-black tracking-wider opacity-60">{label}</p>
+            <div className="text-xl font-black text-white break-words">{value}</div>
+            {subtext && <p className="text-[10px] text-white/50 font-bold">{subtext}</p>}
+        </DoodleCard>
     );
 }
 

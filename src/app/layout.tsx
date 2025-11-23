@@ -3,30 +3,28 @@ import { Inter } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
 import { BottomNav } from '@/components/BottomNav';
+import { FloatingStickers } from '@/components/FloatingStickers';
 
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
-    title: 'Jesse Hub - Holder Analytics & GM Streak',
-    description: 'The ultimate hub for Jesse token holders with analytics, GM streaks, leaderboards, and missions',
+    title: 'Jesse Hub',
+    description: 'The ultimate companion app for Jesse token holders',
     manifest: '/manifest.json',
-    openGraph: {
-        title: 'Jesse Hub',
-        description: 'Holder analytics, GM streaks, and gamified missions for Jesse token',
-        images: ['/og-image.svg'],
-    },
+    metadataBase: new URL('https://jesse-hub.vercel.app'),
 };
 
 export default function RootLayout({
     children,
-}: {
+}: Readonly<{
     children: React.ReactNode;
-}) {
+}>) {
     return (
         <html lang="en">
-            <body className={`${inter.className} bg-dark-bg text-white antialiased`}>
+            <body className={inter.className}>
                 <Providers>
-                    <main className="min-h-screen pb-20">
+                    <FloatingStickers />
+                    <main className="pb-24 px-4 pt-6 max-w-md mx-auto min-h-screen relative z-10">
                         {children}
                     </main>
                     <BottomNav />

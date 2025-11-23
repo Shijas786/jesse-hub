@@ -25,7 +25,7 @@ export function IdentityPill({ address, farcaster }: IdentityPillProps) {
 
     return (
         <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full overflow-hidden border border-white/10 relative">
+            <div className="h-12 w-12 rounded-2xl overflow-hidden border-2 border-black bg-white/10 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)] shrink-0">
                 <Image
                     src={avatar}
                     alt={displayName}
@@ -36,9 +36,9 @@ export function IdentityPill({ address, farcaster }: IdentityPillProps) {
                     unoptimized
                 />
             </div>
-            <div>
-                <p className="font-semibold">{displayName}</p>
-                <p className="text-xs text-white/60">
+            <div className="overflow-hidden">
+                <p className="font-black truncate leading-tight">{displayName}</p>
+                <p className="text-xs text-white/60 font-bold truncate">
                     {farcaster?.username ? `@${farcaster.username}` : ensName ?? formatAddress(address)}
                 </p>
             </div>

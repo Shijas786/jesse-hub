@@ -1,8 +1,10 @@
 'use client';
 
+import { motion } from 'framer-motion';
 import { HolderCard } from './HolderCard';
 import { useHolders } from '@/hooks/useHolders';
 import { LoadingSkeleton } from '../LoadingSkeleton';
+import { DoodleCard } from '@/components/DoodleCard';
 
 interface HoldersListProps {
     filter: 'all' | 'whales' | 'ogs' | 'diamond' | 'paper';
@@ -17,25 +19,32 @@ export function HoldersList({ filter }: HoldersListProps) {
 
     if (isError) {
         return (
-            <div className="mt-4 text-center">
-                <p className="text-red-400 text-sm mb-2">
-                    ⚠️ Failed to load holders. Check browser console for details.
+            <DoodleCard color="pink" className="mt-4 text-center">
+                <p className="text-red-300 font-bold mb-2">
+                    ⚠️ Failed to load holders
                 </p>
-                <p className="text-white/40 text-xs">
-                    Make sure environment variables are set in Vercel.
+                <p className="text-white/60 text-xs">
+                    Check Vercel env vars
                 </p>
-            </div>
+            </DoodleCard>
         );
     }
 
     if (!filteredHolders.length) {
-        return <p className="text-center text-white/60">No holders match this filter.</p>;
+        return <p className="text-center text-white/60 mt-8 font-medium">No holders match this filter 👻</p>;
     }
 
     return (
-        <div className="mt-4">
-            {filteredHolders.map((holder) => (
-                <HolderCard key={holder.address} holder={holder} />
+        <div className="mt-4 space-y-4">
+            {filteredHolders.map((holder, index) => (
+                <motion.div
+                    key={holder.address}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                >
+                    <HolderCard holder={holder} />
+                </motion.div>
             ))}
         </div>
     );

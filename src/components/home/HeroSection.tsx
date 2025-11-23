@@ -3,7 +3,9 @@
 import { motion } from 'framer-motion';
 import { useAccount } from 'wagmi';
 import { useAppKit } from '@reown/appkit/react';
-import { NeonCard } from '../NeonCard';
+import { DoodleCard } from '@/components/DoodleCard';
+import { CartoonButton } from '@/components/CartoonButton';
+import { AnimatedMascot } from '@/components/AnimatedMascot';
 import { useGMStreak } from '@/hooks/useGMStreak';
 
 export function HeroSection() {
@@ -12,38 +14,49 @@ export function HeroSection() {
     const { streak } = useGMStreak(address);
 
     return (
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 relative">
+            <motion.div 
+                className="mb-4 inline-block"
+                initial={{ rotate: -10, scale: 0.8 }}
+                animate={{ rotate: 0, scale: 1 }}
+                transition={{ type: 'spring', damping: 10 }}
+            >
+                <AnimatedMascot variant="wave" className="scale-150" />
+            </motion.div>
+
             <motion.h1
-                className="text-5xl font-bold mb-4 gradient-text"
+                className="text-5xl font-black mb-4 doodle-text tracking-tight"
                 animate={{ scale: [1, 1.02, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
             >
                 Jesse Hub
             </motion.h1>
-            <p className="text-white/60 mb-6">Your ultimate Jesse token companion</p>
+            <p className="text-white/80 mb-6 text-lg font-medium font-handwriting">Your ultimate Jesse token companion</p>
 
             {!isConnected ? (
-                <motion.button
-                    className="px-8 py-3 bg-gradient-neon rounded-full font-semibold text-dark-bg neon-glow"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                <CartoonButton 
                     onClick={() => open()}
+                    className="mx-auto"
+                    variant="primary"
                 >
-                    Connect Wallet
-                </motion.button>
+                    Connect Wallet 👛
+                </CartoonButton>
             ) : (
-                <NeonCard glow className="mt-4">
-                    <div className="text-center">
-                        <p className="text-white/60 text-sm mb-2">Your GM Streak</p>
-                        <motion.p
-                            className="text-4xl font-bold gradient-text"
-                            animate={{ scale: [1, 1.1, 1] }}
-                            transition={{ duration: 1.5, repeat: Infinity }}
-                        >
-                            {streak} 🔥
-                        </motion.p>
-                    </div>
-                </NeonCard>
+                <div className="flex justify-center gap-4 mt-6">
+                    <DoodleCard color="orange" className="p-4 min-w-[160px]">
+                        <p className="text-white/80 text-xs mb-1 font-bold uppercase tracking-wide">Your Streak</p>
+                        <div className="flex items-center justify-center gap-2">
+                            <span className="text-4xl font-black text-outline">{streak}</span>
+                            <motion.span 
+                                className="text-3xl"
+                                animate={{ scale: [1, 1.2, 1], rotate: [0, 10, -10, 0] }}
+                                transition={{ duration: 1.5, repeat: Infinity }}
+                            >
+                                🔥
+                            </motion.span>
+                        </div>
+                    </DoodleCard>
+                </div>
             )}
         </div>
     );
