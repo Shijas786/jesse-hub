@@ -24,8 +24,24 @@ export async function GET() {
             whales,
         });
     } catch (error) {
-        console.error('trader leaderboard error', error);
-        return NextResponse.json({ error: 'Failed to load trader leaderboards' }, { status: 500 });
+        const isDev = process.env.NODE_ENV === 'development';
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        const stack = error instanceof Error ? error.stack : undefined;
+        
+        console.error('GET /api/leaderboards/traders error:', {
+            message,
+            stack: isDev ? stack : undefined,
+            error: error instanceof Error ? error.toString() : String(error),
+        });
+        
+        return NextResponse.json(
+            { 
+                error: 'Failed to load trader leaderboards',
+                message: isDev ? message : 'Internal server error',
+                ...(isDev && stack ? { stack } : {}),
+            },
+            { status: 500 }
+        );
     }
 }
 

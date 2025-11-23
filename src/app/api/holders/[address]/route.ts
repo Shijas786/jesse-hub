@@ -84,8 +84,24 @@ export async function GET(
             sellValue: behavior?.sellValue ?? 0,
         });
     } catch (error) {
-        console.error('holder detail error', error);
-        return NextResponse.json({ error: 'Failed to load holder profile' }, { status: 500 });
+        const isDev = process.env.NODE_ENV === 'development';
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        const stack = error instanceof Error ? error.stack : undefined;
+        
+        console.error(`GET /api/holders/${params.address} error:`, {
+            message,
+            stack: isDev ? stack : undefined,
+            error: error instanceof Error ? error.toString() : String(error),
+        });
+        
+        return NextResponse.json(
+            { 
+                error: 'Failed to load holder profile',
+                message: isDev ? message : 'Internal server error',
+                ...(isDev && stack ? { stack } : {}),
+            },
+            { status: 500 }
+        );
     }
 }
 
