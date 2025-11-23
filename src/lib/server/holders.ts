@@ -26,11 +26,12 @@ export interface HolderSnapshot {
 }
 
 export async function fetchHolderSnapshot(limit = 250): Promise<HolderSnapshot> {
-    const [holdersRaw, transfers, gmEvents] = await Promise.all([
-        getTokenHolders(limit),
-        getTokenTransfers(800),
-        getGmEvents(400),
-    ]);
+    try {
+        const [holdersRaw, transfers, gmEvents] = await Promise.all([
+            getTokenHolders(limit),
+            getTokenTransfers(800),
+            getGmEvents(400),
+        ]);
 
     const tokenAddress = requireEnv('tokenAddress');
     const decimals = holdersRaw[0]?.contract_decimals ?? 18;
@@ -87,5 +88,9 @@ export async function fetchHolderSnapshot(limit = 250): Promise<HolderSnapshot> 
     };
 
     return { holders, stats };
+    } catch (error) {
+        console.error('fetchHolderSnapshot error:', error);
+        throw error;
+    }
 }
 

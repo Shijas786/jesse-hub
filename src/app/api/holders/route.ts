@@ -7,6 +7,13 @@ export async function GET() {
         return NextResponse.json({ holders, stats });
     } catch (error) {
         console.error('holders api error', error);
-        return NextResponse.json({ error: 'Failed to load holders' }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return NextResponse.json(
+            { 
+                error: 'Failed to load holders',
+                details: process.env.NODE_ENV === 'development' ? message : undefined
+            },
+            { status: 500 }
+        );
     }
 }
