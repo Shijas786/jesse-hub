@@ -6,6 +6,8 @@ import { buildGmStreakMap } from '@/utils/gm';
 import { getFarcasterProfiles, getRecentCastsByFid } from '@/lib/neynar';
 import { Mission } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 const normalize = (address: string) => address.toLowerCase() as `0x${string}`;
 
 export async function GET(request: Request) {
