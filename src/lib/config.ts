@@ -9,7 +9,17 @@ export const env = {
 export function requireEnv<T extends keyof typeof env>(key: T): NonNullable<(typeof env)[T]> {
     const value = env[key];
     if (!value) {
-        throw new Error(`Missing environment variable: ${key}`);
+        const envVarNames: Record<keyof typeof env, string> = {
+            tokenAddress: 'NEXT_PUBLIC_JESSE_TOKEN_ADDRESS',
+            gmContractAddress: 'NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS',
+            chainId: 'NEXT_PUBLIC_JESSE_CHAIN_ID',
+            covalentKey: 'COVALENT_KEY or COVALENT_API_KEY',
+            neynarKey: 'NEYNAR_API_KEY',
+        };
+        throw new Error(
+            `Missing environment variable: ${envVarNames[key] || key}. ` +
+            `Please set it in Vercel Environment Variables.`
+        );
     }
     return value as NonNullable<(typeof env)[T]>;
 }
