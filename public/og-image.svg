@@ -1,0 +1,21 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#050505"/>
+      <stop offset="100%" stop-color="#0a0a0a"/>
+    </linearGradient>
+    <linearGradient id="text" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00f0ff"/>
+      <stop offset="100%" stop-color="#b794f6"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="300" cy="200" r="180" fill="#00f0ff" opacity="0.15"/>
+  <circle cx="900" cy="430" r="240" fill="#b794f6" opacity="0.12"/>
+  <text x="100" y="220" font-family="Inter, sans-serif" font-size="120" font-weight="700" fill="url(#text)">Jesse Hub</text>
+  <text x="100" y="320" font-family="Inter, sans-serif" font-size="42" fill="#e0ffff">Farcaster Mini App</text>
+  <text x="100" y="380" font-family="Inter, sans-serif" font-size="32" fill="#8be9ff">GM streaks · Holder analytics · Missions</text>
+  <rect x="100" y="420" width="360" height="8" rx="4" fill="#1f1f1f"/>
+  <rect x="100" y="420" width="260" height="8" rx="4" fill="url(#text)"/>
+</svg>
+

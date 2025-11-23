@@ -1,0 +1,30 @@
+# dependencies
+node_modules
+.pnp
+.pnp.*
+
+# testing
+coverage
+
+# production
+.next
+out
+dist
+build
+
+# misc
+*.log
+.DS_Store
+*.local
+.env
+.env.*
+
+# hardhat artifacts
+artifacts
+cache
+
+# editor
+.idea
+.vscode
+
+

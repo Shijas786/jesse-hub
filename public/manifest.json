@@ -1,0 +1,16 @@
+{
+  "name": "Jesse Hub",
+  "short_name": "JesseHub",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#050505",
+  "theme_color": "#00f0ff",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "type": "image/svg+xml",
+      "sizes": "512x512"
+    }
+  ]
+}
+
