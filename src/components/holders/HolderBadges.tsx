@@ -1,7 +1,7 @@
 'use client';
 
 import { useHolder } from '@/hooks/useHolder';
-import { NeonCard } from '../NeonCard';
+import { DoodleCard } from '@/components/DoodleCard';
 import { BadgeGrid } from '../shared/BadgeGrid';
 
 interface HolderBadgesProps {
@@ -13,17 +13,17 @@ export function HolderBadges({ address }: HolderBadgesProps) {
 
     if (isLoading || !data) {
         return (
-            <NeonCard className="h-24 animate-pulse">
+            <DoodleCard className="h-24 animate-pulse">
                 <div className="w-full h-full" />
-            </NeonCard>
+            </DoodleCard>
         );
     }
 
     return (
-        <NeonCard>
-            <h3 className="text-lg font-semibold mb-3">Badges</h3>
+        <DoodleCard color="yellow" className="mt-6">
+            <h3 className="text-lg font-black mb-3 doodle-text">Badges</h3>
             <BadgeGrid badges={data.holder.badges ?? []} />
-        </NeonCard>
+        </DoodleCard>
     );
 }
 

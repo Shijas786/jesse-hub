@@ -1,7 +1,7 @@
 'use client';
 
 import { useTraderAnalytics } from '@/hooks/useTraderAnalytics';
-import { NeonCard } from '../NeonCard';
+import { DoodleCard } from '@/components/DoodleCard';
 import { IdentityPill } from '../shared/IdentityPill';
 import { formatUsd } from '@/utils/format';
 
@@ -14,32 +14,35 @@ export function TraderProfile({ address }: TraderProfileProps) {
 
     if (isLoading || !data) {
         return (
-            <NeonCard className="h-28 animate-pulse">
+            <DoodleCard className="h-28 animate-pulse">
                 <div className="w-full h-full" />
-            </NeonCard>
+            </DoodleCard>
         );
     }
 
     const trader = data.analytics;
+    const isProfitable = trader.realizedProfit >= 0;
 
     return (
-        <NeonCard glow className="space-y-4">
+        <DoodleCard color={isProfitable ? 'green' : 'pink'} className="space-y-4">
             <IdentityPill address={trader.address} farcaster={trader.farcaster ?? undefined} />
-            <div className="flex items-center justify-between text-sm">
+            <div className="grid grid-cols-3 gap-2 text-sm bg-black/10 p-4 rounded-2xl">
                 <div>
-                    <p className="text-white/60 text-xs">Realized PnL</p>
-                    <p className="text-2xl font-bold gradient-text">{formatUsd(trader.realizedProfit)}</p>
+                    <p className="text-white/60 text-[10px] font-bold uppercase">Realized PnL</p>
+                    <p className={`text-xl font-black ${isProfitable ? 'text-doodle-green' : 'text-doodle-pink'}`}>
+                        {formatUsd(trader.realizedProfit)}
+                    </p>
                 </div>
-                <div>
-                    <p className="text-white/60 text-xs">Win Rate</p>
-                    <p className="text-2xl font-bold">{trader.winRate.toFixed(0)}%</p>
+                <div className="text-center">
+                    <p className="text-white/60 text-[10px] font-bold uppercase">Win Rate</p>
+                    <p className="text-xl font-black">{trader.winRate.toFixed(0)}%</p>
                 </div>
-                <div>
-                    <p className="text-white/60 text-xs">Trades</p>
-                    <p className="text-2xl font-bold">{trader.trades.length}</p>
+                <div className="text-right">
+                    <p className="text-white/60 text-[10px] font-bold uppercase">Trades</p>
+                    <p className="text-xl font-black">{trader.trades.length}</p>
                 </div>
             </div>
-        </NeonCard>
+        </DoodleCard>
     );
 }
 
