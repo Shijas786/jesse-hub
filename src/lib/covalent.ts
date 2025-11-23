@@ -1,28 +1,21 @@
+import { GoldRushClient } from '@covalenthq/client-sdk';
 import { env, requireEnv } from './config';
 
-const API_BASE = 'https://api.covalenthq.com/v1';
+// Initialize the Covalent client
+let client: GoldRushClient | null = null;
 
-interface CovalentResponse<T> {
-    data: T;
-    error: boolean;
-    error_message?: string;
-    error_code?: number;
+function getClient(): GoldRushClient {
+    if (!client) {
+        const apiKey = requireEnv('covalentKey');
+        client = new GoldRushClient(apiKey);
+    }
+    return client;
 }
 
-interface TokenHolderItem {
-    address: `0x${string}`;
-    balance: string;
-    balance_quote: number;
-    quote_rate: number;
-    total_supply: string;
-    contract_decimals: number;
-    last_transferred_at: string;
-}
+// Chain name for Base
+const BASE_CHAIN = 'base-mainnet' as const;
 
-interface TokenHoldersPayload {
-    items: TokenHolderItem[];
-}
-
+// Type definitions matching our existing interfaces
 export interface TransferItem {
     block_signed_at: string;
     tx_hash: string;
@@ -42,25 +35,14 @@ export interface TransferItem {
     }>;
 }
 
-interface TransfersPayload {
-    items: TransferItem[];
-}
-
-interface PriceHistoryPayload {
-    items: Array<{
-        date: string;
-        price: number;
-    }>;
-}
-
-interface BalancesPayload {
-    items: Array<{
-        contract_address: `0x${string}`;
-        contract_decimals: number;
-        balance: string;
-        quote: number | null;
-        quote_rate: number | null;
-    }>;
+interface TokenHolderItem {
+    address: `0x${string}`;
+    balance: string;
+    balance_quote: number;
+    quote_rate: number;
+    total_supply: string;
+    contract_decimals: number;
+    last_transferred_at: string;
 }
 
 interface EventPayload {
@@ -82,70 +64,57 @@ interface EventPayload {
     }>;
 }
 
-async function covalentFetch<T>(
-    path: string,
-    params: Record<string, string | number | boolean | undefined> = {}
-) {
-    const key = requireEnv('covalentKey');
-    const url = new URL(`${API_BASE}/${path.replace(/^\/+/, '')}`);
-
-    Object.entries(params).forEach(([paramKey, value]) => {
-        if (value !== undefined && value !== null) {
-            url.searchParams.set(paramKey, String(value));
-        }
-    });
-
-    const response = await fetch(url.toString(), {
-        headers: {
-            Authorization: `Bearer ${key}`,
-        },
-        next: { revalidate: 60 },
-    });
-
-    if (!response.ok) {
-        const text = await response.text();
-        console.error(
-            `Covalent API Error [${path}]:`,
-            response.status,
-            text.substring(0, 200)
-        );
-        throw new Error(
-            `Covalent request failed: ${response.status} ${text.substring(0, 200)}`
-        );
-    }
-
-    const json = (await response.json()) as CovalentResponse<T>;
-    if (json.error) {
-        console.error(
-            `Covalent API Error [${path}]:`,
-            json.error_message,
-            json.error_code
-        );
-        throw new Error(json.error_message || `Unknown Covalent error (code: ${json.error_code})`);
-    }
-
-    return json.data;
-}
+export type GmEventItem = EventPayload['items'][number];
 
 /**
  * Get top token holders for the Jesse token.
  * Uses token_holders_v2 which is supported on Base.
  */
-export async function getTokenHolders(pageSize = 250) {
-    const chainId = env.chainId;
-    const tokenAddress = requireEnv('tokenAddress');
+export async function getTokenHolders(pageSize = 250): Promise<TokenHolderItem[]> {
+    try {
+        const tokenAddress = requireEnv('tokenAddress');
+        const covalent = getClient();
 
-    const data = await covalentFetch<TokenHoldersPayload>(
-        `${chainId}/tokens/${tokenAddress}/token_holders_v2/`,
-        {
-            'page-size': pageSize,
+        // SDK only supports pageSize of 100 or 1000
+        const sdkPageSize = pageSize <= 100 ? 100 : 1000;
+        const pagesNeeded = Math.ceil(pageSize / sdkPageSize);
+
+        const allHolders: TokenHolderItem[] = [];
+
+        for (let page = 0; page < pagesNeeded && allHolders.length < pageSize; page++) {
+            const response = await covalent.BalanceService.getTokenHoldersV2ForTokenAddressByPage(
+                BASE_CHAIN,
+                tokenAddress,
+                {
+                    pageSize: sdkPageSize,
+                    pageNumber: page,
+                }
+            );
+
+            if (!response.data || response.error) {
+                throw new Error(response.error_message || 'Failed to fetch token holders');
+            }
+
+            // Map SDK response to our expected format
+            const items = (response.data.items || []).map((item) => ({
+                address: item.address as `0x${string}`,
+                balance: item.balance?.toString() || '0',
+                balance_quote: 0, // SDK doesn't provide this for holders
+                quote_rate: 0, // SDK doesn't provide this for holders
+                total_supply: item.total_supply?.toString() || '0',
+                contract_decimals: item.contract_decimals || 18,
+                last_transferred_at: '', // SDK doesn't provide this for holders
+            }));
+
+            allHolders.push(...items);
         }
-    );
 
-    return data.items;
+        return allHolders.slice(0, pageSize);
+    } catch (error) {
+        console.error('getTokenHolders error:', error);
+        throw error;
+    }
 }
-
-export type GmEventItem = EventPayload['items'][number];
 
 /**
  * Get transfers for a single holder for our Jesse token.
@@ -153,115 +122,237 @@ export type GmEventItem = EventPayload['items'][number];
 export async function getHolderTransfers(
     address: `0x${string}`,
     pageSize = 200
-) {
-    const chainId = env.chainId;
-    const tokenAddress = requireEnv('tokenAddress');
+): Promise<TransferItem[]> {
+    try {
+        const tokenAddress = requireEnv('tokenAddress');
+        const covalent = getClient();
 
-    const data = await covalentFetch<TransfersPayload>(
-        `${chainId}/address/${address}/transfers_v2/`,
-        {
-            'contract-address': tokenAddress,
-            'page-size': pageSize,
-            // IMPORTANT: do NOT use "no-logs": true here, we need item.transfers
+        const response = await covalent.BalanceService.getErc20TransfersForWalletAddressByPage(
+            BASE_CHAIN,
+            address,
+            {
+                contractAddress: tokenAddress,
+                startingBlock: 1,
+                // endingBlock defaults to current block height if omitted
+                pageSize,
+                pageNumber: 0,
+            }
+        );
+
+        if (!response.data || response.error) {
+            throw new Error(response.error_message || 'Failed to fetch transfers');
         }
-    );
 
-    return data.items;
+        // Map SDK response to our expected format
+        return (response.data.items || []).map((item) => ({
+            block_signed_at: item.block_signed_at 
+                ? (item.block_signed_at instanceof Date 
+                    ? item.block_signed_at.toISOString() 
+                    : String(item.block_signed_at))
+                : '',
+            tx_hash: item.tx_hash || '',
+            successful: item.successful ?? true,
+            from_address: item.from_address as `0x${string}`,
+            to_address: item.to_address as `0x${string}`,
+            value_quote: item.value_quote || 0,
+            transfers: (item.transfers || []).map((transfer) => ({
+                delta: transfer.delta?.toString() || '0',
+                delta_quote: transfer.delta_quote || null,
+                contract_decimals: transfer.contract_decimals || 18,
+                contract_address: transfer.contract_address as `0x${string}`,
+                transfer_type: (transfer.transfer_type === 'transfer-in' ? 'IN' : 'OUT') as 'IN' | 'OUT',
+                to_address: transfer.to_address as `0x${string}`,
+                from_address: transfer.from_address as `0x${string}`,
+                log_index: (transfer as any).log_index || 0,
+            })),
+        }));
+    } catch (error) {
+        console.error('getHolderTransfers error:', error);
+        throw error;
+    }
 }
 
 /**
  * Get token transfers for multiple addresses in parallel using transfers_v2.
  * Base does not support /tokens/{token}/token_transfers/, so we fan out by address.
  */
-export async function getTokenTransfers(pageSize = 500) {
-    const chainId = env.chainId;
-    const tokenAddress = requireEnv('tokenAddress');
+export async function getTokenTransfers(pageSize = 500): Promise<TransferItem[]> {
+    try {
+        const tokenAddress = requireEnv('tokenAddress');
 
-    // Get top holders first (limited)
-    const holders = await getTokenHolders(
-        Math.min(50, Math.ceil(pageSize / 10))
-    );
-
-    const perHolder = Math.max(5, Math.ceil(pageSize / 30));
-    const transferPromises = holders.slice(0, 30).map((holder) =>
-        getHolderTransfers(
-            holder.address.toLowerCase() as `0x${string}`,
-            perHolder
-        )
-    );
-
-    const allTransfers = await Promise.all(transferPromises);
-
-    const transferMap = new Map<string, TransferItem>();
-
-    allTransfers.flat().forEach((item) => {
-        const relevant = item.transfers?.some(
-            (t) =>
-                t.contract_address.toLowerCase() === tokenAddress.toLowerCase()
+        // Get top holders first (limited)
+        const holders = await getTokenHolders(
+            Math.min(50, Math.ceil(pageSize / 10))
         );
-        if (relevant) {
-            transferMap.set(item.tx_hash, item);
-        }
-    });
 
-    return Array.from(transferMap.values()).slice(0, pageSize);
+        const perHolder = Math.max(5, Math.ceil(pageSize / 30));
+        const transferPromises = holders.slice(0, 30).map((holder) =>
+            getHolderTransfers(
+                holder.address.toLowerCase() as `0x${string}`,
+                perHolder
+            )
+        );
+
+        const allTransfers = await Promise.all(transferPromises);
+
+        const transferMap = new Map<string, TransferItem>();
+
+        allTransfers.flat().forEach((item) => {
+            const relevant = item.transfers?.some(
+                (t) =>
+                    t.contract_address.toLowerCase() === tokenAddress.toLowerCase()
+            );
+            if (relevant) {
+                transferMap.set(item.tx_hash, item);
+            }
+        });
+
+        return Array.from(transferMap.values()).slice(0, pageSize);
+    } catch (error) {
+        console.error('getTokenTransfers error:', error);
+        throw error;
+    }
 }
 
 export async function getPriceHistory(days = 30) {
-    const chainId = env.chainId;
-    const tokenAddress = requireEnv('tokenAddress');
+    try {
+        const tokenAddress = requireEnv('tokenAddress');
+        const covalent = getClient();
 
-    const data = await covalentFetch<PriceHistoryPayload>(
-        `pricing/historical_by_addresses_v2/${chainId}/USD/${tokenAddress}/`,
-        { 'page-size': days }
-    );
+        const toDate = new Date();
+        const fromDate = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
-    return data.items;
+        const response = await covalent.PricingService.getTokenPrices(
+            BASE_CHAIN,
+            'USD',
+            tokenAddress,
+            {
+                from: fromDate.toISOString().split('T')[0],
+                to: toDate.toISOString().split('T')[0],
+            }
+        );
+
+        if (!response.data || response.error) {
+            throw new Error(response.error_message || 'Failed to fetch price history');
+        }
+
+        // Map SDK response to our expected format
+        // SDK returns array of TokenPricesResponse, each with items array
+        const allPrices: Array<{ date: string; price: number }> = [];
+        if (Array.isArray(response.data)) {
+            response.data.forEach((tokenData) => {
+                if (tokenData.items) {
+                    tokenData.items.forEach((item) => {
+                        allPrices.push({
+                            date: item.date 
+                                ? (item.date instanceof Date 
+                                    ? item.date.toISOString().split('T')[0] 
+                                    : String(item.date))
+                                : '',
+                            price: item.price || 0,
+                        });
+                    });
+                }
+            });
+        }
+
+        return allPrices;
+    } catch (error) {
+        console.error('getPriceHistory error:', error);
+        throw error;
+    }
 }
 
 /**
  * GM events from JesseGM contract.
  */
-export async function getGmEvents(pageSize = 200) {
-    const chainId = env.chainId;
-    const gmContract = requireEnv('gmContractAddress');
+export async function getGmEvents(pageSize = 200): Promise<GmEventItem[]> {
+    try {
+        const gmContract = requireEnv('gmContractAddress');
+        const covalent = getClient();
 
-    const data = await covalentFetch<EventPayload>(
-        `${chainId}/events/address/${gmContract}/`,
-        {
-            'starting-block': 1, // Base chain genesis block
-            'ending-block': 'latest',
-            'page-size': pageSize,
+        const response = await covalent.BaseService.getLogEventsByAddressByPage(
+            BASE_CHAIN,
+            gmContract,
+            {
+                startingBlock: 1, // Base chain genesis block
+                endingBlock: 'latest',
+                pageSize,
+                pageNumber: 0,
+            }
+        );
+
+        if (!response.data || response.error) {
+            throw new Error(response.error_message || 'Failed to fetch GM events');
         }
-    );
 
-    return data.items;
+        // Map SDK response to our expected format
+        // SDK returns LogEvent[] directly, not wrapped in log_events
+        return (response.data.items || []).map((item) => ({
+            block_signed_at: item.block_signed_at 
+                ? (item.block_signed_at instanceof Date 
+                    ? item.block_signed_at.toISOString() 
+                    : String(item.block_signed_at))
+                : '',
+            tx_hash: item.tx_hash || '',
+            log_events: [
+                {
+                    decoded: item.decoded
+                        ? {
+                              name: item.decoded.name || '',
+                              params: (item.decoded.params || []).map((param) => ({
+                                  name: param.name || '',
+                                  type: param.type || '',
+                                  indexed: param.indexed ?? false,
+                                  decoded: param.decoded ?? false,
+                                  value: param.value || '',
+                              })),
+                          }
+                        : null,
+                },
+            ],
+        }));
+    } catch (error) {
+        console.error('getGmEvents error:', error);
+        throw error;
+    }
 }
 
 export async function getAddressTokenBalance(address: `0x${string}`) {
-    const chainId = env.chainId;
-    const tokenAddress = requireEnv('tokenAddress');
+    try {
+        const tokenAddress = requireEnv('tokenAddress');
+        const covalent = getClient();
 
-    const data = await covalentFetch<BalancesPayload>(
-        `${chainId}/address/${address}/balances_v2/`
-    );
+        const response = await covalent.BalanceService.getTokenBalancesForWalletAddress(
+            BASE_CHAIN,
+            address
+        );
 
-    const match = data.items.find(
-        (item) =>
-            item.contract_address.toLowerCase() === tokenAddress.toLowerCase()
-    );
+        if (!response.data || response.error) {
+            throw new Error(response.error_message || 'Failed to fetch token balance');
+        }
 
-    if (!match) {
-        return null;
+        // Find the Jesse token in the balances
+        const match = response.data.items?.find(
+            (item) =>
+                item.contract_address?.toLowerCase() === tokenAddress.toLowerCase()
+        );
+
+        if (!match) {
+            return null;
+        }
+
+        const decimals = match.contract_decimals || 18;
+        const rawBalance = Number(match.balance || 0) / 10 ** decimals;
+
+        return {
+            balance: rawBalance,
+            balanceQuote: match.quote || 0,
+            quoteRate: match.quote_rate || 0,
+            decimals,
+        };
+    } catch (error) {
+        console.error('getAddressTokenBalance error:', error);
+        throw error;
     }
-
-    const decimals = match.contract_decimals || 18;
-    const rawBalance = Number(match.balance) / 10 ** decimals;
-
-    return {
-        balance: rawBalance,
-        balanceQuote: match.quote ?? 0,
-        quoteRate: match.quote_rate ?? 0,
-        decimals,
-    };
 }
