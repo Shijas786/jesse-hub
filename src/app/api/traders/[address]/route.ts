@@ -4,6 +4,8 @@ import { requireEnv, JESSE_DECIMALS } from '@/lib/config';
 import { computeTraderAnalytics } from '@/utils/traders';
 import { getFarcasterProfiles } from '@/lib/neynar';
 
+export const dynamic = 'force-dynamic';
+
 const normalize = (address: string) => address.toLowerCase() as `0x${string}`;
 
 export async function GET(

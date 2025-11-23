@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { fetchHolderSnapshot } from '@/lib/server/holders';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const { holders } = await fetchHolderSnapshot();

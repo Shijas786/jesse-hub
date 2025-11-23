@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { fetchTraderAnalytics } from '@/lib/server/traders';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const analytics = await fetchTraderAnalytics();

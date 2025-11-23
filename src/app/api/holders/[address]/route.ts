@@ -12,6 +12,8 @@ import { buildBehaviorMap, buildActivitySeries } from '@/utils/holders';
 import { buildGmStreakMap } from '@/utils/gm';
 import { HolderDetail } from '@/types';
 
+export const dynamic = 'force-dynamic';
+
 const normalize = (address: string) => address.toLowerCase() as `0x${string}`;
 
 export async function GET(

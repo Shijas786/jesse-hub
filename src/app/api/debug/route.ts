@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { env } from '@/lib/config';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     const debug = {
         hasTokenAddress: !!env.tokenAddress,

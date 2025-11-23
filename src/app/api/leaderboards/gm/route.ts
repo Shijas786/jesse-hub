@@ -3,6 +3,8 @@ import { getGmEvents } from '@/lib/covalent';
 import { getFarcasterProfiles } from '@/lib/neynar';
 import { buildGmStreakMap } from '@/utils/gm';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
     try {
         const events = await getGmEvents(600);
