@@ -9,7 +9,10 @@ interface HoldersResponse {
 }
 
 export function useJesseStats() {
-    const query = useApi<HoldersResponse>(['holders', 'summary'], '/api/holders');
+    const query = useApi<HoldersResponse>(['holders', 'summary'], '/api/holders', {
+        retry: 1,
+        retryDelay: 2000,
+    });
     const stats = query.data?.stats;
     return {
         ...query,

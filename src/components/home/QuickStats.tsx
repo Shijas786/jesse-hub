@@ -6,7 +6,7 @@ import { AnimatedCounter } from '../AnimatedCounter';
 import { useJesseStats } from '@/hooks/useJesseStats';
 
 export function QuickStats() {
-    const { totalHolders, totalSupply, topHolder, isLoading } = useJesseStats();
+    const { totalHolders, totalSupply, topHolder, isLoading, isError } = useJesseStats();
 
     const stats = [
         { label: 'Total Holders', value: totalHolders, suffix: '' },
@@ -21,6 +21,16 @@ export function QuickStats() {
                     <div key={i} className="glass-card p-4 h-24 animate-pulse" />
                 ))}
             </div>
+        );
+    }
+
+    if (isError) {
+        return (
+            <NeonCard className="mb-8 p-4 text-center">
+                <p className="text-red-400 text-sm">
+                    ⚠️ Failed to load stats. Please check environment variables in Vercel.
+                </p>
+            </NeonCard>
         );
     }
 
