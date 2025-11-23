@@ -67,16 +67,18 @@ interface EventPayload {
     items: Array<{
         block_signed_at: string;
         tx_hash: string;
-        decoded: {
-            name: string;
-            params: Array<{
+        log_events: Array<{
+            decoded?: {
                 name: string;
-                type: string;
-                indexed: boolean;
-                decoded: boolean;
-                value: string;
-            }>;
-        } | null;
+                params: Array<{
+                    name: string;
+                    type: string;
+                    indexed: boolean;
+                    decoded: boolean;
+                    value: string;
+                }>;
+            } | null;
+        }>;
     }>;
 }
 
@@ -117,7 +119,7 @@ export async function getTokenHolders(pageSize = 250) {
     const tokenAddress = requireEnv('tokenAddress');
 
     const data = await covalentFetch<TokenHoldersPayload>(
-        `${chainId}/tokens/${tokenAddress}/token_holders/`,
+        `${chainId}/tokens/${tokenAddress}/token_holders_v2/`,
         {
             'page-size': pageSize,
         }
@@ -137,7 +139,6 @@ export async function getHolderTransfers(address: `0x${string}`, pageSize = 200)
         {
             'contract-address': tokenAddress,
             'page-size': pageSize,
-            'no-logs': true,
         }
     );
 

@@ -11,25 +11,32 @@ export function buildGmStreakMap(events: GmEventItem[]) {
     const map = new Map<`0x${string}`, GmStreak>();
 
     events.forEach((event) => {
-        if (event.decoded?.name !== 'GMed') {
+        // Events now have log_events array - iterate through them
+        if (!event.log_events || !Array.isArray(event.log_events)) {
             return;
         }
 
-        const userParam = event.decoded.params.find((param) => param.name === 'user');
-        const streakParam = event.decoded.params.find((param) => param.name === 'streak');
-        if (!userParam || !streakParam) {
-            return;
-        }
+        for (const logEvent of event.log_events) {
+            if (logEvent.decoded?.name !== 'GMed') {
+                continue;
+            }
 
-        const address = normalize(userParam.value);
-        const streakValue = Number(streakParam.value);
-        if (!Number.isFinite(streakValue)) {
-            return;
-        }
+            const userParam = logEvent.decoded.params.find((param) => param.name === 'user');
+            const streakParam = logEvent.decoded.params.find((param) => param.name === 'streak');
+            if (!userParam || !streakParam) {
+                continue;
+            }
 
-        const existing = map.get(address);
-        if (!existing || new Date(event.block_signed_at) > new Date(existing.lastTimestamp)) {
-            map.set(address, { streak: streakValue, lastTimestamp: event.block_signed_at });
+            const address = normalize(userParam.value);
+            const streakValue = Number(streakParam.value);
+            if (!Number.isFinite(streakValue)) {
+                continue;
+            }
+
+            const existing = map.get(address);
+            if (!existing || new Date(event.block_signed_at) > new Date(existing.lastTimestamp)) {
+                map.set(address, { streak: streakValue, lastTimestamp: event.block_signed_at });
+            }
         }
     });
 
