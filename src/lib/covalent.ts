@@ -144,18 +144,37 @@ export async function getHolderTransfers(address: `0x${string}`, pageSize = 200)
     return data.items;
 }
 
+/**
+ * Get token transfers for multiple addresses in parallel.
+ * Base chain doesn't support /tokens/{token}/token_transfers/, so we fetch per-address.
+ */
 export async function getTokenTransfers(pageSize = 500) {
     const chainId = env.chainId;
     const tokenAddress = requireEnv('tokenAddress');
-
-    const data = await covalentFetch<TransfersPayload>(
-        `${chainId}/tokens/${tokenAddress}/token_transfers/`,
-        {
-            'page-size': pageSize,
-        }
+    
+    // Get top holders first to fetch their transfers
+    const holders = await getTokenHolders(Math.min(50, Math.ceil(pageSize / 10)));
+    
+    // Fetch transfers for each holder in parallel (limited to avoid rate limits)
+    const transferPromises = holders.slice(0, 30).map((holder) =>
+        getHolderTransfers(holder.address.toLowerCase() as `0x${string}`, Math.ceil(pageSize / 30))
     );
-
-    return data.items;
+    
+    const allTransfers = await Promise.all(transferPromises);
+    
+    // Flatten and deduplicate by tx_hash
+    const transferMap = new Map<string, TransferItem>();
+    allTransfers.flat().forEach((item) => {
+        // Only include transfers for our token
+        const relevant = item.transfers?.some(
+            (t) => t.contract_address.toLowerCase() === tokenAddress.toLowerCase()
+        );
+        if (relevant) {
+            transferMap.set(item.tx_hash, item);
+        }
+    });
+    
+    return Array.from(transferMap.values()).slice(0, pageSize);
 }
 
 export async function getPriceHistory(days = 30) {
