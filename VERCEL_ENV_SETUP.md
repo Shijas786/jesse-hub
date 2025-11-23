@@ -8,9 +8,10 @@ Add these environment variables in your Vercel project settings:
    - Value: `0x50f88fe97f72cd3e75b9eb4f747f59bceba80d59`
    - This is the Jesse token contract address on Base
 
-2. **COVALENT_API_KEY**
+2. **COVALENT_KEY** (or COVALENT_API_KEY as fallback)
    - Value: Your Covalent API key (e.g., `cqt_rQGWXhx8dr9YwfBmjMhKjTCR8BvC`)
    - Used for fetching token balances, transfers, and pricing data
+   - **IMPORTANT:** Use `COVALENT_KEY` as the primary name in Vercel
 
 3. **NEYNAR_API_KEY**
    - Value: Your Neynar API key
