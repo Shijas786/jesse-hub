@@ -265,53 +265,58 @@ export async function getPriceHistory(days = 30) {
 
 /**
  * GM events from JesseGM contract.
+ * Uses the standard getLogs endpoint (GET /v1/{chainName}/events/) which supports filtering by address.
+ * Note: This endpoint doesn't support pagination, so we filter and limit results client-side.
+ * For better performance with large datasets, consider using getLogEventsByAddressByPage() instead.
  */
 export async function getGmEvents(pageSize = 200): Promise<GmEventItem[]> {
     try {
         const gmContract = requireEnv('gmContractAddress');
         const covalent = getClient();
 
-        const response = await covalent.BaseService.getLogEventsByAddressByPage(
-            BASE_CHAIN,
-            gmContract,
-            {
-                startingBlock: 1, // Base chain genesis block
-                endingBlock: 'latest',
-                pageSize,
-                pageNumber: 0,
-            }
-        );
+        const response = await covalent.BaseService.getLogs(BASE_CHAIN, {
+            startingBlock: 1, // Base chain genesis block
+            endingBlock: 'latest',
+            address: gmContract,
+            skipDecode: false, // We need decoded events to filter for GMed events
+        });
 
         if (!response.data || response.error) {
             throw new Error(response.error_message || 'Failed to fetch GM events');
         }
 
         // Map SDK response to our expected format
-        // SDK returns LogEvent[] directly, not wrapped in log_events
-        return (response.data.items || []).map((item) => ({
-            block_signed_at: item.block_signed_at 
-                ? (item.block_signed_at instanceof Date 
-                    ? item.block_signed_at.toISOString() 
-                    : String(item.block_signed_at))
-                : '',
-            tx_hash: item.tx_hash || '',
-            log_events: [
-                {
-                    decoded: item.decoded
-                        ? {
-                              name: item.decoded.name || '',
-                              params: (item.decoded.params || []).map((param) => ({
-                                  name: param.name || '',
-                                  type: param.type || '',
-                                  indexed: param.indexed ?? false,
-                                  decoded: param.decoded ?? false,
-                                  value: param.value || '',
-                              })),
-                          }
-                        : null,
-                },
-            ],
-        }));
+        // Filter for GMed events and limit to pageSize
+        // Note: getLogs() returns all matching logs, so we filter client-side
+        const allItems = (response.data.items || [])
+            .filter((item) => item.decoded?.name === 'GMed')
+            .slice(0, pageSize)
+            .map((item) => ({
+                block_signed_at: item.block_signed_at 
+                    ? (item.block_signed_at instanceof Date 
+                        ? item.block_signed_at.toISOString() 
+                        : String(item.block_signed_at))
+                    : '',
+                tx_hash: item.tx_hash || '',
+                log_events: [
+                    {
+                        decoded: item.decoded
+                            ? {
+                                  name: item.decoded.name || '',
+                                  params: (item.decoded.params || []).map((param) => ({
+                                      name: param.name || '',
+                                      type: param.type || '',
+                                      indexed: param.indexed ?? false,
+                                      decoded: param.decoded ?? false,
+                                      value: param.value || '',
+                                  })),
+                              }
+                            : null,
+                    },
+                ],
+            }));
+
+        return allItems;
     } catch (error) {
         console.error('getGmEvents error:', error);
         throw error;
