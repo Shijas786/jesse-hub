@@ -8,12 +8,21 @@ export async function GET() {
         const { holders, stats } = await fetchHolderSnapshot();
         return NextResponse.json({ holders, stats });
     } catch (error) {
-        console.error('holders api error', error);
+        const isDev = process.env.NODE_ENV === 'development';
         const message = error instanceof Error ? error.message : 'Unknown error';
+        const stack = error instanceof Error ? error.stack : undefined;
+        
+        console.error('GET /api/holders error:', {
+            message,
+            stack: isDev ? stack : undefined,
+            error: error instanceof Error ? error.toString() : String(error),
+        });
+        
         return NextResponse.json(
             { 
                 error: 'Failed to load holders',
-                details: process.env.NODE_ENV === 'development' ? message : undefined
+                message: isDev ? message : 'Internal server error',
+                ...(isDev && stack ? { stack } : {}),
             },
             { status: 500 }
         );
