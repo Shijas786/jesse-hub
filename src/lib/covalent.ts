@@ -177,6 +177,8 @@ export async function getGmEvents(pageSize = 200) {
     const data = await covalentFetch<EventPayload>(
         `${chainId}/events/address/${gmContract}/`,
         {
+            'starting-block': 0,
+            'ending-block': 'latest',
             'page-size': pageSize,
         }
     );
