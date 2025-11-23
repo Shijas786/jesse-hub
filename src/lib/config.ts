@@ -2,7 +2,7 @@ export const env = {
     tokenAddress: process.env.NEXT_PUBLIC_JESSE_TOKEN_ADDRESS as `0x${string}` | undefined,
     gmContractAddress: process.env.NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS as `0x${string}` | undefined,
     chainId: Number(process.env.NEXT_PUBLIC_JESSE_CHAIN_ID ?? '8453'),
-    covalentKey: process.env.COVALENT_API_KEY || process.env.covalentKey,
+    covalentKey: process.env.COVALENT_KEY || process.env.COVALENT_API_KEY || process.env.covalentKey,
     neynarKey: process.env.NEYNAR_API_KEY || process.env.neynarKey,
 };
 
