@@ -12,7 +12,11 @@ export function HolderBadges({ address }: HolderBadgesProps) {
     const { data, isLoading } = useHolder(address);
 
     if (isLoading || !data) {
-        return <NeonCard className="h-24 animate-pulse" />;
+        return (
+            <NeonCard className="h-24 animate-pulse">
+                <div className="w-full h-full" />
+            </NeonCard>
+        );
     }
 
     return (

@@ -14,7 +14,11 @@ export function HolderProfile({ address }: HolderProfileProps) {
     const { data, isLoading } = useHolder(address);
 
     if (isLoading || !data) {
-        return <NeonCard className="h-32 animate-pulse" />;
+        return (
+            <NeonCard className="h-32 animate-pulse">
+                <div className="w-full h-full" />
+            </NeonCard>
+        );
     }
 
     const { holder } = data;

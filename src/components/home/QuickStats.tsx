@@ -6,7 +6,7 @@ import { AnimatedCounter } from '../AnimatedCounter';
 import { useJesseStats } from '@/hooks/useJesseStats';
 
 export function QuickStats() {
-    const { totalHolders, totalSupply, topHolder, loading } = useJesseStats();
+    const { totalHolders, totalSupply, topHolder, isLoading } = useJesseStats();
 
     const stats = [
         { label: 'Total Holders', value: totalHolders, suffix: '' },
@@ -14,7 +14,7 @@ export function QuickStats() {
         { label: 'Top Holder %', value: topHolder, suffix: '%', decimals: 2 },
     ];
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="grid grid-cols-3 gap-3 mb-8">
                 {[1, 2, 3].map((i) => (

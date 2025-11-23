@@ -33,7 +33,11 @@ export function TraderTimeline({ address }: TraderTimelineProps) {
     }, [data]);
 
     if (isLoading || !data) {
-        return <NeonCard className="h-48 animate-pulse" />;
+        return (
+            <NeonCard className="h-48 animate-pulse">
+                <div className="w-full h-full" />
+            </NeonCard>
+        );
     }
 
     if (!timeline.length) {

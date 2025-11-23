@@ -13,7 +13,11 @@ export function TraderProfile({ address }: TraderProfileProps) {
     const { data, isLoading } = useTraderAnalytics(address);
 
     if (isLoading || !data) {
-        return <NeonCard className="h-28 animate-pulse" />;
+        return (
+            <NeonCard className="h-28 animate-pulse">
+                <div className="w-full h-full" />
+            </NeonCard>
+        );
     }
 
     const trader = data.analytics;

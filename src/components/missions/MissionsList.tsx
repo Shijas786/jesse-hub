@@ -27,7 +27,9 @@ export function MissionsList() {
         return (
             <div className="space-y-3">
                 {[1, 2, 3].map((i) => (
-                    <NeonCard key={i} className="h-24 animate-pulse" />
+                    <NeonCard key={i} className="h-24 animate-pulse">
+                        <div className="w-full h-full" />
+                    </NeonCard>
                 ))}
             </div>
         );

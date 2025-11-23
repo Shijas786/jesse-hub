@@ -7,7 +7,7 @@ import { formatAddress } from '@/utils/format';
 
 interface IdentityPillProps {
     address: `0x${string}`;
-    farcaster?: FarcasterProfile | null;
+    farcaster?: Partial<FarcasterProfile> | null;
 }
 
 export function IdentityPill({ address, farcaster }: IdentityPillProps) {

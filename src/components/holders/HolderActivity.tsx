@@ -12,7 +12,11 @@ export function HolderActivity({ address }: HolderActivityProps) {
     const { data, isLoading } = useHolder(address);
 
     if (isLoading || !data) {
-        return <NeonCard className="h-48 animate-pulse" />;
+        return (
+            <NeonCard className="h-48 animate-pulse">
+                <div className="w-full h-full" />
+            </NeonCard>
+        );
     }
 
     if (!data.holder.activity.length) {
