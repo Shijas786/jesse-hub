@@ -99,12 +99,14 @@ async function covalentFetch<T>(path: string, params: Record<string, string | nu
 
     if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Covalent request failed: ${response.status} ${text}`);
+        console.error(`Covalent API Error [${path}]:`, response.status, text.substring(0, 200));
+        throw new Error(`Covalent request failed: ${response.status} ${text.substring(0, 200)}`);
     }
 
     const json = (await response.json()) as CovalentResponse<T>;
     if (json.error) {
-        throw new Error(json.error_message || 'Unknown Covalent error');
+        console.error(`Covalent API Error [${path}]:`, json.error_message, json.error_code);
+        throw new Error(json.error_message || `Unknown Covalent error (code: ${json.error_code})`);
     }
 
     return json.data;
