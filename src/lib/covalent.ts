@@ -1,6 +1,15 @@
 import { GoldRushClient } from '@covalenthq/client-sdk';
 import { env, requireEnv } from './config';
 
+/**
+ * Covalent API client for Jesse Hub
+ * 
+ * Following Base chain documentation: https://goldrush.dev/docs/chains/base
+ * - Chain name: 'base-mainnet' (Chain ID: 8453)
+ * - All methods use official SDK (no raw fetch calls)
+ * - SDK version: @covalenthq/client-sdk
+ */
+
 // Initialize the Covalent client
 let client: GoldRushClient | null = null;
 
@@ -12,7 +21,8 @@ function getClient(): GoldRushClient {
     return client;
 }
 
-// Chain name for Base
+// Chain name for Base - exactly as specified in GoldRush documentation
+// See: https://goldrush.dev/docs/chains/base
 const BASE_CHAIN = 'base-mainnet' as const;
 
 // Type definitions matching our existing interfaces
