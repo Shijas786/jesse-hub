@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getHolderTransfers } from '@/lib/covalent';
+import { getHolderTransfers } from '@/lib/goldrush';
 import { getJesseTokenAddress, JESSE_DECIMALS } from '@/lib/config';
 import { computeTraderAnalytics } from '@/utils/traders';
 import { getFarcasterProfiles } from '@/lib/neynar';

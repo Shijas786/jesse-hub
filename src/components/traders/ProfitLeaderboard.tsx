@@ -3,12 +3,17 @@
 import { useTraders } from '@/hooks/useTraders';
 import { TraderCard } from './TraderCard';
 import { LoadingSkeleton } from '../LoadingSkeleton';
+import { ErrorFallback } from '../ErrorFallback';
 
 export function ProfitLeaderboard() {
-    const { lists, isLoading } = useTraders();
+    const { lists, isLoading, isError, error, refetch } = useTraders();
 
     if (isLoading) {
         return <LoadingSkeleton />;
+    }
+
+    if (isError) {
+        return <ErrorFallback error={error} resetError={() => refetch()} title="Failed to load traders" />;
     }
 
     return (

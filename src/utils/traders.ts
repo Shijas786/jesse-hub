@@ -1,4 +1,4 @@
-import { TransferItem } from '@/lib/covalent';
+import { TransferItem } from '@/lib/goldrush';
 import { TraderAnalytics, TraderTrade } from '@/types';
 import { deriveBadges } from './badges';
 

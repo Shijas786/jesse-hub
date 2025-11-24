@@ -1,6 +1,6 @@
-import { getTokenHolders, getTokenTransfers, getGmEvents } from '@/lib/covalent';
+import { getTokenHolders, getTokenTransfers, getGmEvents } from '@/lib/goldrush';
 import { getFarcasterProfiles } from '@/lib/neynar';
-import { getJesseTokenAddress } from '@/lib/config';
+import { getJesseTokenAddress, requireEnv } from '@/lib/config';
 import { buildBehaviorMap } from '@/utils/holders';
 import { buildGmStreakMap } from '@/utils/gm';
 import { deriveBadges } from '@/utils/badges';
@@ -27,13 +27,16 @@ export interface HolderSnapshot {
 
 export async function fetchHolderSnapshot(limit = 250): Promise<HolderSnapshot> {
     try {
-        const [holdersRaw, transfers, gmEvents] = await Promise.all([
-            getTokenHolders(limit),
-            getTokenTransfers(800),
-            getGmEvents(400),
+        const tokenAddress = getJesseTokenAddress();
+        const gmContractAddress = requireEnv('gmContractAddress');
+
+        const [holdersData, transfers, gmEvents] = await Promise.all([
+            getTokenHolders(tokenAddress, 0, limit),
+            getTokenTransfers(tokenAddress, 800),
+            getGmEvents(gmContractAddress, 400),
         ]);
 
-        const tokenAddress = getJesseTokenAddress();
+        const holdersRaw = holdersData.items || [];
         const decimals = holdersRaw[0]?.contract_decimals ?? 18;
         const totalSupply = holdersRaw[0] ? toUnits(holdersRaw[0].total_supply, decimals) : 0;
         const behaviorMap = buildBehaviorMap(transfers, tokenAddress);

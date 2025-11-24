@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getHolderTransfers, getGmEvents } from '@/lib/covalent';
-import { getJesseTokenAddress } from '@/lib/config';
+import { getHolderTransfers, getGmEvents } from '@/lib/goldrush';
+import { getJesseTokenAddress, requireEnv } from '@/lib/config';
 import { buildBehaviorMap } from '@/utils/holders';
 import { buildGmStreakMap } from '@/utils/gm';
 import { getFarcasterProfiles, getRecentCastsByFid } from '@/lib/neynar';
@@ -50,10 +50,11 @@ export async function GET(request: Request) {
 
         const address = normalize(addressParam);
         const tokenAddress = getJesseTokenAddress();
+        const gmContractAddress = requireEnv('gmContractAddress');
 
         const [transfers, gmEvents, farcasterMap] = await Promise.all([
             getHolderTransfers(address, 200),
-            getGmEvents(200),
+            getGmEvents(gmContractAddress, 200),
             getFarcasterProfiles([address]),
         ]);
 

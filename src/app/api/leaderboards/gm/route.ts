@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getGmEvents } from '@/lib/covalent';
+import { getGmEvents } from '@/lib/goldrush';
+import { requireEnv } from '@/lib/config';
 import { getFarcasterProfiles } from '@/lib/neynar';
 import { buildGmStreakMap } from '@/utils/gm';
 
@@ -7,7 +8,8 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
     try {
-        const events = await getGmEvents(600);
+        const gmContractAddress = requireEnv('gmContractAddress');
+        const events = await getGmEvents(gmContractAddress, 600);
         const streakMap = buildGmStreakMap(events);
         const entries = Array.from(streakMap.entries())
             .map(([address, data]) => ({ address, ...data }))

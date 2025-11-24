@@ -4,8 +4,8 @@ import {
     getGmEvents,
     getHolderTransfers,
     getTokenHolders,
-} from '@/lib/covalent';
-import { getJesseTokenAddress } from '@/lib/config';
+} from '@/lib/goldrush';
+import { getJesseTokenAddress, requireEnv } from '@/lib/config';
 import { getFarcasterProfiles } from '@/lib/neynar';
 import { deriveBadges } from '@/utils/badges';
 import { buildBehaviorMap, buildActivitySeries } from '@/utils/holders';
@@ -23,13 +23,16 @@ export async function GET(
     try {
         const address = normalize(params.address);
         const tokenAddress = getJesseTokenAddress();
+        const gmContractAddress = requireEnv('gmContractAddress');
 
-        const [transfers, holders, gmEvents, balanceInfo] = await Promise.all([
+        const [transfers, holdersData, gmEvents, balanceInfo] = await Promise.all([
             getHolderTransfers(address, 300),
-            getTokenHolders(300),
-            getGmEvents(400),
-            getAddressTokenBalance(address),
+            getTokenHolders(tokenAddress, 0, 300),
+            getGmEvents(gmContractAddress, 400),
+            getAddressTokenBalance(address, tokenAddress),
         ]);
+
+        const holders = holdersData.items || [];
 
         const behaviorMap = buildBehaviorMap(transfers, tokenAddress);
         const behavior = behaviorMap.get(address);
