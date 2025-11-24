@@ -21,8 +21,7 @@ export async function GET(req: Request) {
         const holders = holdersData.items || [];
 
         // Get price history for PnL calculation
-        const priceData = await getTokenPrices(jesseToken);
-        const prices = priceData.items || [];
+        const prices = await getTokenPrices(jesseToken);
 
         // Helper to get price at a given timestamp
         const getPriceAtTime = (timestamp: string): number => {
