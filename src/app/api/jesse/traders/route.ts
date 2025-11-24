@@ -21,18 +21,17 @@ export async function GET(req: Request) {
         const holders = holdersData.items || [];
 
         // Get price history for PnL calculation
-        const prices = await getTokenPrices(jesseToken);
+        const pricePoints = await getTokenPrices(jesseToken);
+        const prices = pricePoints.sort((a, b) => a.timestamp - b.timestamp);
 
         // Helper to get price at a given timestamp
         const getPriceAtTime = (timestamp: string): number => {
             const tradeTime = new Date(timestamp).getTime();
-            // Find closest price
             let closest = prices[0]?.price || 0;
             let minDiff = Infinity;
             
             for (const price of prices) {
-                const priceTime = new Date(price.date).getTime();
-                const diff = Math.abs(tradeTime - priceTime);
+                const diff = Math.abs(tradeTime - price.timestamp);
                 if (diff < minDiff) {
                     minDiff = diff;
                     closest = price.price || 0;

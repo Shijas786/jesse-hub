@@ -74,7 +74,18 @@ export async function getJesseTransfersForAddress(
 /**
  * Get historical token prices for JESSE
  */
-export async function getTokenPrices(tokenAddress: string, fromDate?: string, toDate?: string) {
+export interface TokenPricePoint {
+    tokenAddress: string;
+    price: number;
+    timestamp: number;
+    date: string;
+}
+
+export async function getTokenPrices(
+    tokenAddress: string,
+    fromDate?: string,
+    toDate?: string
+): Promise<TokenPricePoint[]> {
     const goldrush = getClient();
     const to = toDate || new Date().toISOString().split('T')[0];
     const from =
@@ -94,15 +105,21 @@ export async function getTokenPrices(tokenAddress: string, fromDate?: string, to
         throw new Error(response.error_message || 'Failed to fetch token prices');
     }
 
-    const priceItems: Array<{ date: string; price: number }> = [];
+    const priceItems: TokenPricePoint[] = [];
 
     if (Array.isArray(response.data)) {
         response.data.forEach((tokenData) => {
             tokenData?.items?.forEach((item) => {
                 if (item) {
+                    const isoDate =
+                        item.date instanceof Date ? item.date.toISOString() : item.date || '';
+                    const timestamp = isoDate ? new Date(isoDate).getTime() : Date.now();
+
                     priceItems.push({
-                        date: item.date instanceof Date ? item.date.toISOString() : item.date || '',
+                        tokenAddress,
+                        date: isoDate,
                         price: item.price || 0,
+                        timestamp,
                     });
                 }
             });
