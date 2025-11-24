@@ -1,155 +1,150 @@
-import { GoldRushClient, type GoldRushResponse } from '@covalenthq/client-sdk';
+import { GoldRushClient } from '@covalenthq/client-sdk';
 
 const CHAIN = 'base-mainnet';
 
 let client: GoldRushClient | null = null;
 
-function getClient() {
-    if (!client) {
-        const apiKey =
-            process.env.GOLDRUSH_API_KEY ||
-            process.env.COVALENT_KEY ||
-            process.env.COVALENT_API_KEY;
+function getClient(): GoldRushClient {
+    if (client) return client;
 
-        if (!apiKey) {
-            throw new Error('Missing GOLDRUSH_API_KEY or COVALENT_KEY environment variable');
-        }
+    const apiKey =
+        process.env.GOLDRUSH_API_KEY ||
+        process.env.COVALENT_KEY ||
+        process.env.COVALENT_API_KEY;
 
-        client = new GoldRushClient(apiKey);
+    if (!apiKey) {
+        throw new Error(
+            'Missing GoldRush API key. Set GOLDRUSH_API_KEY or COVALENT_KEY or COVALENT_API_KEY.'
+        );
     }
 
+    client = new GoldRushClient(apiKey);
     return client;
 }
 
-async function getFirstPage<T>(iterable: AsyncIterable<GoldRushResponse<T>>) {
-    for await (const page of iterable) {
-        return page;
+async function takeFirst<T>(value: any): Promise<T> {
+    if (value && typeof value[Symbol.asyncIterator] === 'function') {
+        for await (const page of value as AsyncIterable<T>) {
+            return page;
+        }
+        throw new Error('GoldRush API returned no data');
     }
-    throw new Error('GoldRush API returned no data');
+    return value as T;
+}
+
+export interface TokenHolder {
+    address: string;
+    balance: string;
+    total_supply?: string;
+    contract_decimals: number;
+    contract_ticker_symbol?: string;
+    last_transferred_at?: string | null;
+}
+
+export interface TokenHoldersResult {
+    items: TokenHolder[];
+    pagination?: {
+        has_more: boolean;
+        page_number: number;
+        page_size: number;
+        total_count: number;
+    };
 }
 
 /**
- * Get token holders for JESSE token via GoldRush SDK
+ * Get token holders for a given ERC20 token on Base.
  */
-export async function getTokenHolders(tokenAddress: string, page = 0, pageSize = 100) {
+export async function getTokenHolders(
+    tokenAddress: string,
+    pageNumber = 0,
+    pageSize = 100
+): Promise<TokenHoldersResult> {
     const goldrush = getClient();
 
-    const response = await getFirstPage(
-        goldrush.BalanceService.getTokenHoldersV2ForTokenAddress(CHAIN, tokenAddress, {
-            pageNumber: page,
+    const iterator = goldrush.BalanceService.getTokenHoldersV2ForTokenAddress(
+        CHAIN,
+        tokenAddress,
+        {
+            pageNumber,
             pageSize,
-        })
+        }
     );
+    const resp = (await takeFirst(iterator)) as any;
 
-    if (!response || response.error || !response.data) {
-        throw new Error(response?.error_message || 'GoldRush API failure (holders)');
+    if (!resp.data || resp.error) {
+        throw new Error(resp.error_message || 'Failed to fetch token holders');
     }
 
-    return response.data;
+    const data = resp.data as any;
+
+    return {
+        items: data.items || [],
+        pagination: data.pagination,
+    };
 }
 
 /**
- * Get JESSE token transfers for a specific address
+ * Get ERC20 transfers for a wallet and then filter for the specific token.
  */
 export async function getJesseTransfersForAddress(
-    address: string,
+    walletAddress: string,
     tokenAddress: string,
     pageSize = 200
 ) {
     const goldrush = getClient();
 
-    const response = await getFirstPage(
-        goldrush.BalanceService.getErc20TransfersForWalletAddress(CHAIN, address, {
+    const iterator = goldrush.BalanceService.getErc20TransfersForWalletAddress(
+        CHAIN,
+        walletAddress,
+        {
             contractAddress: tokenAddress,
             pageSize,
             pageNumber: 0,
-        })
-    );
-
-    if (!response || response.error || !response.data) {
-        throw new Error(response?.error_message || 'GoldRush API failure (transfers)');
-    }
-
-    return response.data;
-}
-
-/**
- * Get historical token prices for JESSE
- */
-export interface TokenPricePoint {
-    tokenAddress: string;
-    price: number;
-    timestamp: number;
-    date: string;
-}
-
-export async function getTokenPrices(
-    tokenAddress: string,
-    fromDate?: string,
-    toDate?: string
-): Promise<TokenPricePoint[]> {
-    const goldrush = getClient();
-    const to = toDate || new Date().toISOString().split('T')[0];
-    const from =
-        fromDate || new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-
-    const response = await goldrush.PricingService.getTokenPrices(
-        CHAIN,
-        'USD',
-        tokenAddress,
-        {
-            from,
-            to,
         }
     );
+    const resp = (await takeFirst(iterator)) as any;
 
-    if (!response || response.error || !response.data) {
-        throw new Error(response?.error_message || 'GoldRush API failure (pricing)');
+    if (!resp.data || resp.error) {
+        throw new Error(resp.error_message || 'Failed to fetch transfers');
     }
 
-    const priceItems: TokenPricePoint[] = [];
+    const data = resp.data as any;
+    const items = (data.items || []).filter(
+        (item: any) =>
+            item.contract_address &&
+            item.contract_address.toLowerCase() === tokenAddress.toLowerCase()
+    );
 
-    if (Array.isArray(response.data)) {
-        response.data.forEach((tokenData) => {
-            tokenData?.items?.forEach((item) => {
-                if (item) {
-                    const isoDate =
-                        item.date instanceof Date ? item.date.toISOString() : item.date || '';
-                    const timestamp = isoDate ? new Date(isoDate).getTime() : Date.now();
-
-                    priceItems.push({
-                        tokenAddress,
-                        date: isoDate,
-                        price: item.price || 0,
-                        timestamp,
-                    });
-                }
-            });
-        });
-    }
-
-    return priceItems;
+    return {
+        ...data,
+        items,
+    };
 }
 
 /**
- * Get token balance for a specific address
+ * Get token balance (and quote) for a specific wallet + token.
  */
-export async function getTokenBalanceForAddress(address: string, tokenAddress: string) {
+export async function getTokenBalanceForAddress(
+    walletAddress: string,
+    tokenAddress: string
+) {
     const goldrush = getClient();
 
-    const response = await goldrush.BalanceService.getTokenBalancesForWalletAddress(
+    const resp = await goldrush.BalanceService.getTokenBalancesForWalletAddress(
         CHAIN,
-        address
+        walletAddress
     );
 
-    if (!response || response.error || !response.data) {
-        throw new Error(response?.error_message || 'GoldRush API failure (balances)');
+    if (!resp.data || resp.error) {
+        throw new Error(resp.error_message || 'Failed to fetch balances');
     }
 
-    const token = response.data.items?.find(
-        (item) => item.contract_address?.toLowerCase() === tokenAddress.toLowerCase()
+    const data = resp.data as any;
+    const token = (data.items || []).find(
+        (item: any) =>
+            item.contract_address &&
+            item.contract_address.toLowerCase() === tokenAddress.toLowerCase()
     );
 
     return token || null;
 }
-

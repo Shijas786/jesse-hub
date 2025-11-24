@@ -6,11 +6,17 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const analytics = await fetchTraderAnalytics();
+
         const profit = analytics.slice(0, 20);
+
         const scalpers = [...analytics]
             .sort((a, b) => b.scalperScore - a.scalperScore)
             .slice(0, 20);
-        const winners = analytics.filter((entry) => entry.realizedProfit > 0).slice(0, 20);
+
+        const winners = analytics
+            .filter((entry) => entry.realizedProfit > 0)
+            .slice(0, 20);
+
         const losers = analytics
             .filter((entry) => entry.realizedProfit < 0)
             .sort((a, b) => a.realizedProfit - b.realizedProfit)
@@ -22,25 +28,22 @@ export async function GET() {
             winners,
             losers,
         });
-    } catch (error) {
+    } catch (err) {
         const isDev = process.env.NODE_ENV === 'development';
-        const message = error instanceof Error ? error.message : 'Unknown error';
-        const stack = error instanceof Error ? error.stack : undefined;
-        
+        const message = err instanceof Error ? err.message : 'Unknown error';
+
         console.error('GET /api/traders error:', {
             message,
-            stack: isDev ? stack : undefined,
-            error: error instanceof Error ? error.toString() : String(error),
+            error: err instanceof Error ? err.toString() : String(err),
+            stack: isDev && err instanceof Error ? err.stack : undefined,
         });
-        
+
         return NextResponse.json(
-            { 
+            {
                 error: 'Failed to load trader data',
                 message: isDev ? message : 'Internal server error',
-                ...(isDev && stack ? { stack } : {}),
             },
             { status: 500 }
         );
     }
 }
-
