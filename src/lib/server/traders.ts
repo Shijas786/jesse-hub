@@ -1,5 +1,5 @@
 import { getTokenTransfers, getTokenHolders, TransferItem } from '@/lib/covalent';
-import { requireEnv } from '@/lib/config';
+import { getJesseTokenAddress } from '@/lib/config';
 import { computeTraderAnalytics } from '@/utils/traders';
 import { getFarcasterProfiles } from '@/lib/neynar';
 import { TraderAnalytics } from '@/types';
@@ -45,7 +45,7 @@ function groupTransfersByAddress(transfers: TransferItem[], tokenAddress: `0x${s
 }
 
 export async function fetchTraderAnalytics(limit = 60) {
-    const tokenAddress = requireEnv('tokenAddress');
+    const tokenAddress = getJesseTokenAddress();
     const [transfers, holders] = await Promise.all([
         getTokenTransfers(1200),
         getTokenHolders(limit),

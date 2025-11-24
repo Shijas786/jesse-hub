@@ -5,7 +5,7 @@ import {
     getHolderTransfers,
     getTokenHolders,
 } from '@/lib/covalent';
-import { requireEnv } from '@/lib/config';
+import { getJesseTokenAddress } from '@/lib/config';
 import { getFarcasterProfiles } from '@/lib/neynar';
 import { deriveBadges } from '@/utils/badges';
 import { buildBehaviorMap, buildActivitySeries } from '@/utils/holders';
@@ -22,7 +22,7 @@ export async function GET(
 ) {
     try {
         const address = normalize(params.address);
-        const tokenAddress = requireEnv('tokenAddress');
+        const tokenAddress = getJesseTokenAddress();
 
         const [transfers, holders, gmEvents, balanceInfo] = await Promise.all([
             getHolderTransfers(address, 300),

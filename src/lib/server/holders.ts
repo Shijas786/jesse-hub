@@ -1,6 +1,6 @@
 import { getTokenHolders, getTokenTransfers, getGmEvents } from '@/lib/covalent';
 import { getFarcasterProfiles } from '@/lib/neynar';
-import { requireEnv } from '@/lib/config';
+import { getJesseTokenAddress } from '@/lib/config';
 import { buildBehaviorMap } from '@/utils/holders';
 import { buildGmStreakMap } from '@/utils/gm';
 import { deriveBadges } from '@/utils/badges';
@@ -33,15 +33,15 @@ export async function fetchHolderSnapshot(limit = 250): Promise<HolderSnapshot> 
             getGmEvents(400),
         ]);
 
-    const tokenAddress = requireEnv('tokenAddress');
-    const decimals = holdersRaw[0]?.contract_decimals ?? 18;
-    const totalSupply = holdersRaw[0] ? toUnits(holdersRaw[0].total_supply, decimals) : 0;
-    const behaviorMap = buildBehaviorMap(transfers, tokenAddress);
-    const gmMap = buildGmStreakMap(gmEvents);
-    const farcasterMap = await getFarcasterProfiles(
-        holdersRaw.map((holder) => holder.address.toLowerCase() as `0x${string}`)
-    );
-    const whaleCutoff = Math.max(1, Math.floor(holdersRaw.length * 0.01));
+        const tokenAddress = getJesseTokenAddress();
+        const decimals = holdersRaw[0]?.contract_decimals ?? 18;
+        const totalSupply = holdersRaw[0] ? toUnits(holdersRaw[0].total_supply, decimals) : 0;
+        const behaviorMap = buildBehaviorMap(transfers, tokenAddress);
+        const gmMap = buildGmStreakMap(gmEvents);
+        const farcasterMap = await getFarcasterProfiles(
+            holdersRaw.map((holder) => holder.address.toLowerCase() as `0x${string}`)
+        );
+        const whaleCutoff = Math.max(1, Math.floor(holdersRaw.length * 0.01));
 
     const holders: HolderSummary[] = holdersRaw.map((item, index) => {
         const normalized = item.address.toLowerCase() as `0x${string}`;
@@ -87,7 +87,7 @@ export async function fetchHolderSnapshot(limit = 250): Promise<HolderSnapshot> 
         treasuryBalance: holders[0]?.balance ?? 0,
     };
 
-    return { holders, stats };
+        return { holders, stats };
     } catch (error) {
         console.error('fetchHolderSnapshot error:', error);
         throw error;

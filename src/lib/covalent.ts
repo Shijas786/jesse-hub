@@ -1,5 +1,5 @@
-import { GoldRushClient } from '@covalenthq/client-sdk';
-import { env, requireEnv } from './config';
+import { GoldRushClient, type GoldRushResponse } from '@covalenthq/client-sdk';
+import { env, requireEnv, getJesseTokenAddress } from './config';
 
 /**
  * Covalent API client for Jesse Hub
@@ -80,9 +80,16 @@ export type GmEventItem = EventPayload['items'][number];
  * Get top token holders for the Jesse token.
  * Uses token_holders_v2 which is supported on Base.
  */
+async function takeFirstPage<T>(iterable: AsyncIterable<GoldRushResponse<T>>) {
+    for await (const page of iterable) {
+        return page;
+    }
+    throw new Error('GoldRush API returned no data');
+}
+
 export async function getTokenHolders(pageSize = 250): Promise<TokenHolderItem[]> {
     try {
-        const tokenAddress = requireEnv('tokenAddress');
+        const tokenAddress = getJesseTokenAddress();
         const covalent = getClient();
 
         // SDK only supports pageSize of 100 or 1000
@@ -91,32 +98,41 @@ export async function getTokenHolders(pageSize = 250): Promise<TokenHolderItem[]
 
         const allHolders: TokenHolderItem[] = [];
 
-        for (let page = 0; page < pagesNeeded && allHolders.length < pageSize; page++) {
-            const response = await covalent.BalanceService.getTokenHoldersV2ForTokenAddressByPage(
-                BASE_CHAIN,
-                tokenAddress,
-                {
-                    pageSize: sdkPageSize,
-                    pageNumber: page,
-                }
-            );
+        const iterator = covalent.BalanceService.getTokenHoldersV2ForTokenAddress(
+            BASE_CHAIN,
+            tokenAddress,
+            {
+                pageSize: sdkPageSize,
+                pageNumber: 0,
+            }
+        );
 
-            if (!response.data || response.error) {
-                throw new Error(response.error_message || 'Failed to fetch token holders');
+        let processedPages = 0;
+        for await (const response of iterator) {
+            if (processedPages >= pagesNeeded || allHolders.length >= pageSize) {
+                break;
             }
 
-            // Map SDK response to our expected format
+            if (!response || response.error || !response.data) {
+                throw new Error(response?.error_message || 'Failed to fetch token holders');
+            }
+
             const items = (response.data.items || []).map((item) => ({
                 address: item.address as `0x${string}`,
                 balance: item.balance?.toString() || '0',
-                balance_quote: 0, // SDK doesn't provide this for holders
-                quote_rate: 0, // SDK doesn't provide this for holders
+                balance_quote: 0,
+                quote_rate: 0,
                 total_supply: item.total_supply?.toString() || '0',
                 contract_decimals: item.contract_decimals || 18,
-                last_transferred_at: '', // SDK doesn't provide this for holders
+                last_transferred_at: '',
             }));
 
             allHolders.push(...items);
+            processedPages++;
+        }
+
+        if (!allHolders.length) {
+            throw new Error('No holder data returned from GoldRush');
         }
 
         return allHolders.slice(0, pageSize);
@@ -134,23 +150,24 @@ export async function getHolderTransfers(
     pageSize = 200
 ): Promise<TransferItem[]> {
     try {
-        const tokenAddress = requireEnv('tokenAddress');
+        const tokenAddress = getJesseTokenAddress();
         const covalent = getClient();
 
-        const response = await covalent.BalanceService.getErc20TransfersForWalletAddressByPage(
-            BASE_CHAIN,
-            address,
-            {
-                contractAddress: tokenAddress,
-                startingBlock: 1,
-                // endingBlock defaults to current block height if omitted
-                pageSize,
-                pageNumber: 0,
-            }
+        const response = await takeFirstPage(
+            covalent.BalanceService.getErc20TransfersForWalletAddress(
+                BASE_CHAIN,
+                address,
+                {
+                    contractAddress: tokenAddress,
+                    startingBlock: 1,
+                    pageSize,
+                    pageNumber: 0,
+                }
+            )
         );
 
-        if (!response.data || response.error) {
-            throw new Error(response.error_message || 'Failed to fetch transfers');
+        if (!response || response.error || !response.data) {
+            throw new Error(response?.error_message || 'Failed to fetch transfers');
         }
 
         // Map SDK response to our expected format
@@ -188,7 +205,7 @@ export async function getHolderTransfers(
  */
 export async function getTokenTransfers(pageSize = 500): Promise<TransferItem[]> {
     try {
-        const tokenAddress = requireEnv('tokenAddress');
+        const tokenAddress = getJesseTokenAddress();
 
         // Get top holders first (limited)
         const holders = await getTokenHolders(
@@ -226,7 +243,7 @@ export async function getTokenTransfers(pageSize = 500): Promise<TransferItem[]>
 
 export async function getPriceHistory(days = 30) {
     try {
-        const tokenAddress = requireEnv('tokenAddress');
+        const tokenAddress = getJesseTokenAddress();
         const covalent = getClient();
 
         const toDate = new Date();
@@ -336,7 +353,7 @@ export async function getGmEvents(pageSize = 200): Promise<GmEventItem[]> {
 
 export async function getAddressTokenBalance(address: `0x${string}`) {
     try {
-        const tokenAddress = requireEnv('tokenAddress');
+        const tokenAddress = getJesseTokenAddress();
         const covalent = getClient();
 
         const response = await covalent.BalanceService.getTokenBalancesForWalletAddress(

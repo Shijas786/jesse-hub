@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { GoldRushClient } from '@covalenthq/client-sdk';
-import { requireEnv } from '@/lib/config';
+import { getJesseTokenAddress } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -12,9 +12,9 @@ export async function GET() {
         }
 
         const client = new GoldRushClient(apiKey);
-        const tokenAddress = requireEnv('tokenAddress');
+        const tokenAddress = getJesseTokenAddress();
 
-        const resp = await client.BalanceService.getTokenHoldersV2ForTokenAddressByPage(
+        const iterator = client.BalanceService.getTokenHoldersV2ForTokenAddress(
             'base-mainnet',
             tokenAddress,
             {
@@ -22,9 +22,14 @@ export async function GET() {
                 pageNumber: 0,
             }
         );
+        let resp;
+        for await (const page of iterator) {
+            resp = page;
+            break;
+        }
 
-        if (!resp.data || resp.error) {
-            throw new Error(resp.error_message || 'Failed to fetch holders');
+        if (!resp || resp.error || !resp.data) {
+            throw new Error(resp?.error_message || 'Failed to fetch holders');
         }
 
         // Map to expected format

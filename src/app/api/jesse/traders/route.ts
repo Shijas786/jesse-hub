@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getTokenHolders, getJesseTransfersForAddress, getTokenPrices } from '@/lib/goldrush';
-import { requireEnv } from '@/lib/config';
+import { getJesseTokenAddress } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,7 @@ export async function GET(req: Request) {
         const limit = parseInt(searchParams.get('limit') || '50', 10);
         const sortBy = searchParams.get('sortBy') || 'pnl'; // 'pnl', 'trades', 'scalper'
 
-        const jesseToken = requireEnv('tokenAddress');
+        const jesseToken = getJesseTokenAddress();
 
         // Get top holders
         const holdersData = await getTokenHolders(jesseToken, 0, limit);

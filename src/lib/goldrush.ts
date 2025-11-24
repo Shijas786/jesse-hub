@@ -1,4 +1,4 @@
-import { GoldRushClient } from '@covalenthq/client-sdk';
+import { GoldRushClient, type GoldRushResponse } from '@covalenthq/client-sdk';
 
 const CHAIN = 'base-mainnet';
 
@@ -21,23 +21,28 @@ function getClient() {
     return client;
 }
 
+async function getFirstPage<T>(iterable: AsyncIterable<GoldRushResponse<T>>) {
+    for await (const page of iterable) {
+        return page;
+    }
+    throw new Error('GoldRush API returned no data');
+}
+
 /**
  * Get token holders for JESSE token via GoldRush SDK
  */
 export async function getTokenHolders(tokenAddress: string, page = 0, pageSize = 100) {
     const goldrush = getClient();
 
-    const response = await goldrush.BalanceService.getTokenHoldersV2ForTokenAddressByPage(
-        CHAIN,
-        tokenAddress,
-        {
+    const response = await getFirstPage(
+        goldrush.BalanceService.getTokenHoldersV2ForTokenAddress(CHAIN, tokenAddress, {
             pageNumber: page,
             pageSize,
-        }
+        })
     );
 
-    if (!response.data || response.error) {
-        throw new Error(response.error_message || 'Failed to fetch token holders');
+    if (!response || response.error || !response.data) {
+        throw new Error(response?.error_message || 'GoldRush API failure (holders)');
     }
 
     return response.data;
@@ -53,19 +58,16 @@ export async function getJesseTransfersForAddress(
 ) {
     const goldrush = getClient();
 
-    const response =
-        await goldrush.BalanceService.getErc20TransfersForWalletAddressByPage(
-            CHAIN,
-            address,
-            {
-                contractAddress: tokenAddress,
-                pageSize,
-                pageNumber: 0,
-            }
-        );
+    const response = await getFirstPage(
+        goldrush.BalanceService.getErc20TransfersForWalletAddress(CHAIN, address, {
+            contractAddress: tokenAddress,
+            pageSize,
+            pageNumber: 0,
+        })
+    );
 
-    if (!response.data || response.error) {
-        throw new Error(response.error_message || 'Failed to fetch transfers');
+    if (!response || response.error || !response.data) {
+        throw new Error(response?.error_message || 'GoldRush API failure (transfers)');
     }
 
     return response.data;
@@ -101,8 +103,8 @@ export async function getTokenPrices(
         }
     );
 
-    if (!response.data || response.error) {
-        throw new Error(response.error_message || 'Failed to fetch token prices');
+    if (!response || response.error || !response.data) {
+        throw new Error(response?.error_message || 'GoldRush API failure (pricing)');
     }
 
     const priceItems: TokenPricePoint[] = [];
@@ -140,8 +142,8 @@ export async function getTokenBalanceForAddress(address: string, tokenAddress: s
         address
     );
 
-    if (!response.data || response.error) {
-        throw new Error(response.error_message || 'Failed to fetch balances');
+    if (!response || response.error || !response.data) {
+        throw new Error(response?.error_message || 'GoldRush API failure (balances)');
     }
 
     const token = response.data.items?.find(

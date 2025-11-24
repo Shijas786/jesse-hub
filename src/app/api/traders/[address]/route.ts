@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getHolderTransfers } from '@/lib/covalent';
-import { requireEnv, JESSE_DECIMALS } from '@/lib/config';
+import { getJesseTokenAddress, JESSE_DECIMALS } from '@/lib/config';
 import { computeTraderAnalytics } from '@/utils/traders';
 import { getFarcasterProfiles } from '@/lib/neynar';
 
@@ -14,7 +14,7 @@ export async function GET(
 ) {
     try {
         const address = normalize(params.address);
-        const tokenAddress = requireEnv('tokenAddress');
+        const tokenAddress = getJesseTokenAddress();
 
         const transfers = await getHolderTransfers(address, 400);
         const analytics = computeTraderAnalytics(address, transfers, tokenAddress, JESSE_DECIMALS);

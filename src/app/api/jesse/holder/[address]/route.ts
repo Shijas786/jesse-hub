@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getJesseTransfersForAddress, getTokenBalanceForAddress } from '@/lib/goldrush';
-import { requireEnv } from '@/lib/config';
+import { getJesseTokenAddress } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,7 @@ export async function GET(
 ) {
     try {
         const address = params.address.toLowerCase() as `0x${string}`;
-        const jesseToken = requireEnv('tokenAddress');
+        const jesseToken = getJesseTokenAddress();
 
         // Get current balance
         const balanceData = await getTokenBalanceForAddress(address, jesseToken);

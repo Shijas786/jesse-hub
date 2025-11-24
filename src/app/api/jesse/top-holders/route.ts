@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getTokenHolders } from '@/lib/goldrush';
-import { requireEnv } from '@/lib/config';
+import { getJesseTokenAddress } from '@/lib/config';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
         const page = parseInt(searchParams.get('page') || '0', 10);
         const pageSize = parseInt(searchParams.get('pageSize') || '100', 10);
 
-        const jesseToken = requireEnv('tokenAddress');
+        const jesseToken = getJesseTokenAddress();
         const data = await getTokenHolders(jesseToken, page, pageSize);
 
         // Normalize for frontend
