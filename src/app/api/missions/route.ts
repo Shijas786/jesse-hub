@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getHolderTransfers, getGmEvents } from '@/lib/covalent';
+import { getHolderTransfers, getGmEvents } from '@/lib/goldrush';
 import { getJesseTokenAddress } from '@/lib/config';
 import { buildBehaviorMap } from '@/utils/holders';
 import { buildGmStreakMap } from '@/utils/gm';
@@ -9,6 +9,10 @@ import { Mission } from '@/types';
 export const dynamic = 'force-dynamic';
 
 const normalize = (address: string) => address.toLowerCase() as `0x${string}`;
+
+const GM_CONTRACT_ADDRESS =
+    process.env.NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS ||
+    process.env.JESSE_GM_CONTRACT_ADDRESS;
 
 export async function GET(request: Request) {
     try {
@@ -51,9 +55,13 @@ export async function GET(request: Request) {
         const address = normalize(addressParam);
         const tokenAddress = getJesseTokenAddress();
 
+        if (!GM_CONTRACT_ADDRESS) {
+            throw new Error('Missing NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS environment variable');
+        }
+
         const [transfers, gmEvents, farcasterMap] = await Promise.all([
-            getHolderTransfers(address, 200),
-            getGmEvents(200),
+            getHolderTransfers(address, tokenAddress, 200),
+            getGmEvents(GM_CONTRACT_ADDRESS, 200),
             getFarcasterProfiles([address]),
         ]);
 

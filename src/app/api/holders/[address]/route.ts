@@ -3,8 +3,8 @@ import {
     getAddressTokenBalance,
     getGmEvents,
     getHolderTransfers,
-    getTokenHolders,
-} from '@/lib/covalent';
+    getTokenHoldersLegacy,
+} from '@/lib/goldrush';
 import { getJesseTokenAddress } from '@/lib/config';
 import { getFarcasterProfiles } from '@/lib/neynar';
 import { deriveBadges } from '@/utils/badges';
@@ -16,6 +16,10 @@ export const dynamic = 'force-dynamic';
 
 const normalize = (address: string) => address.toLowerCase() as `0x${string}`;
 
+const GM_CONTRACT_ADDRESS =
+    process.env.NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS ||
+    process.env.JESSE_GM_CONTRACT_ADDRESS;
+
 export async function GET(
     _request: Request,
     { params }: { params: { address: string } }
@@ -24,11 +28,15 @@ export async function GET(
         const address = normalize(params.address);
         const tokenAddress = getJesseTokenAddress();
 
+        if (!GM_CONTRACT_ADDRESS) {
+            throw new Error('Missing NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS environment variable');
+        }
+
         const [transfers, holders, gmEvents, balanceInfo] = await Promise.all([
-            getHolderTransfers(address, 300),
-            getTokenHolders(300),
-            getGmEvents(400),
-            getAddressTokenBalance(address),
+            getHolderTransfers(address, tokenAddress, 300),
+            getTokenHoldersLegacy(300),
+            getGmEvents(GM_CONTRACT_ADDRESS, 400),
+            getAddressTokenBalance(address, tokenAddress),
         ]);
 
         const behaviorMap = buildBehaviorMap(transfers, tokenAddress);

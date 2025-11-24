@@ -25,7 +25,14 @@ export function useApi<T>(
             return data as T;
         },
         staleTime: 60 * 1000,
-        retry: 1, // Only retry once instead of default 3
+        retry: (failureCount, error) => {
+            // Don't retry on 4xx errors (client errors)
+            if (error.message.includes('400') || error.message.includes('401') || error.message.includes('403') || error.message.includes('404')) {
+                return false;
+            }
+            // Only retry once for server errors
+            return failureCount < 1;
+        },
         retryDelay: 2000, // Wait 2 seconds between retries
         ...options,
     });

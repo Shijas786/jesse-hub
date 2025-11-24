@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getHolderTransfers } from '@/lib/covalent';
+import { getHolderTransfers } from '@/lib/goldrush';
 import { getJesseTokenAddress, JESSE_DECIMALS } from '@/lib/config';
 import { computeTraderAnalytics } from '@/utils/traders';
 import { getFarcasterProfiles } from '@/lib/neynar';
@@ -16,7 +16,7 @@ export async function GET(
         const address = normalize(params.address);
         const tokenAddress = getJesseTokenAddress();
 
-        const transfers = await getHolderTransfers(address, 400);
+        const transfers = await getHolderTransfers(address, tokenAddress, 400);
         const analytics = computeTraderAnalytics(address, transfers, tokenAddress, JESSE_DECIMALS);
         const farcaster = await getFarcasterProfiles([address]);
         analytics.farcaster = farcaster.get(address) ?? null;
