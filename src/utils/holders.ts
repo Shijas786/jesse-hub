@@ -1,4 +1,4 @@
-import { TransferItem } from '@/lib/covalent';
+import { TransferItem } from '@/lib/goldrush';
 import { daysBetween } from './format';
 
 export interface HolderBehavior {

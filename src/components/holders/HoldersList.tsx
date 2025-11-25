@@ -4,30 +4,21 @@ import { motion } from 'framer-motion';
 import { HolderCard } from './HolderCard';
 import { useHolders } from '@/hooks/useHolders';
 import { LoadingSkeleton } from '../LoadingSkeleton';
-import { DoodleCard } from '@/components/DoodleCard';
+import { ErrorFallback } from '../ErrorFallback';
 
 interface HoldersListProps {
     filter: 'all' | 'whales' | 'ogs' | 'diamond' | 'paper';
 }
 
 export function HoldersList({ filter }: HoldersListProps) {
-    const { filteredHolders, isLoading, isError } = useHolders(filter);
+    const { filteredHolders, isLoading, isError, error, refetch } = useHolders(filter);
 
     if (isLoading) {
         return <LoadingSkeleton />;
     }
 
     if (isError) {
-        return (
-            <DoodleCard color="pink" className="mt-4 text-center">
-                <p className="text-red-300 font-bold mb-2">
-                    ⚠️ Failed to load holders
-                </p>
-                <p className="text-white/60 text-xs">
-                    Check Vercel env vars
-                </p>
-            </DoodleCard>
-        );
+        return <ErrorFallback error={error} resetError={() => refetch()} title="Failed to load holders" />;
     }
 
     if (!filteredHolders.length) {

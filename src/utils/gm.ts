@@ -1,4 +1,4 @@
-import { GmEventItem } from '@/lib/covalent';
+import { GmEventItem } from '@/lib/goldrush';
 
 const normalize = (address: string) => address.toLowerCase() as `0x${string}`;
 

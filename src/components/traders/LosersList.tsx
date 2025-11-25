@@ -3,11 +3,17 @@
 import { useTraders } from '@/hooks/useTraders';
 import { TraderCard } from './TraderCard';
 import { formatUsd } from '@/utils/format';
+import { LoadingSkeleton } from '../LoadingSkeleton';
+import { ErrorFallback } from '../ErrorFallback';
 
 export function LosersList() {
-    const { lists, isLoading } = useTraders();
+    const { lists, isLoading, isError, error, refetch } = useTraders();
     if (isLoading) {
-        return <p className="text-white/60">Loading rekt board…</p>;
+        return <LoadingSkeleton />;
+    }
+
+    if (isError) {
+        return <ErrorFallback error={error} resetError={() => refetch()} title="Failed to load rekt board" />;
     }
 
     return (

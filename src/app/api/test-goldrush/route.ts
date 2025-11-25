@@ -1,5 +1,4 @@
 import { NextResponse } from 'next/server';
-import { getClient } from '@/lib/goldrush';
 
 export const dynamic = 'force-dynamic';
 
