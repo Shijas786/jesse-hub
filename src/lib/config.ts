@@ -1,9 +1,5 @@
-const tokenAddressEnv =
-    (process.env.JESSE_TOKEN_ADDRESS ||
-        process.env.NEXT_PUBLIC_JESSE_TOKEN_ADDRESS) as `0x${string}` | undefined;
-
 export const env = {
-    tokenAddress: tokenAddressEnv,
+    tokenAddress: process.env.NEXT_PUBLIC_JESSE_TOKEN_ADDRESS as `0x${string}` | undefined,
     gmContractAddress: process.env.NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS as `0x${string}` | undefined,
     chainId: Number(process.env.NEXT_PUBLIC_JESSE_CHAIN_ID ?? '8453'),
     covalentKey: process.env.GOLDRUSH_API_KEY || process.env.COVALENT_KEY || process.env.COVALENT_API_KEY || process.env.covalentKey,
@@ -14,7 +10,7 @@ export function requireEnv<T extends keyof typeof env>(key: T): NonNullable<(typ
     const value = env[key];
     if (!value) {
         const envVarNames: Record<keyof typeof env, string> = {
-            tokenAddress: 'JESSE_TOKEN_ADDRESS or NEXT_PUBLIC_JESSE_TOKEN_ADDRESS',
+            tokenAddress: 'NEXT_PUBLIC_JESSE_TOKEN_ADDRESS',
             gmContractAddress: 'NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS',
             chainId: 'NEXT_PUBLIC_JESSE_CHAIN_ID',
             covalentKey: 'GOLDRUSH_API_KEY or COVALENT_KEY or COVALENT_API_KEY',
@@ -29,13 +25,4 @@ export function requireEnv<T extends keyof typeof env>(key: T): NonNullable<(typ
 }
 
 export const JESSE_DECIMALS = 18;
-
-export function getJesseTokenAddress(): `0x${string}` {
-    if (!tokenAddressEnv) {
-        throw new Error(
-            'Missing JESSE_TOKEN_ADDRESS or NEXT_PUBLIC_JESSE_TOKEN_ADDRESS environment variable'
-        );
-    }
-    return tokenAddressEnv;
-}
 
