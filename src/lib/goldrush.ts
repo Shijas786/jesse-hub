@@ -23,12 +23,25 @@ function getClient(): GoldRushClient {
 }
 
 async function takeFirst<T>(value: any): Promise<T> {
-    if (value && typeof value[Symbol.asyncIterator] === 'function') {
+    if (!value) {
+        throw new Error('GoldRush API returned null/undefined');
+    }
+    
+    // Check if it's an async iterator
+    if (typeof value[Symbol.asyncIterator] === 'function') {
         for await (const page of value as AsyncIterable<T>) {
-            return page;
+            if (page) {
+                return page;
+            }
         }
         throw new Error('GoldRush API returned no data');
     }
+    
+    // If it's already a promise or value, return it
+    if (value instanceof Promise) {
+        return await value;
+    }
+    
     return value as T;
 }
 
@@ -185,52 +198,60 @@ export async function getHolderTransfers(
     tokenAddress: string,
     pageSize = 200
 ): Promise<TransferItem[]> {
-    const goldrush = getClient();
+    try {
+        const goldrush = getClient();
 
-    const iterator = goldrush.BalanceService.getErc20TransfersForWalletAddress(
-        CHAIN,
-        walletAddress,
-        {
-            contractAddress: tokenAddress,
-            pageSize,
-            pageNumber: 0,
+        const iterator = goldrush.BalanceService.getErc20TransfersForWalletAddress(
+            CHAIN,
+            walletAddress,
+            {
+                contractAddress: tokenAddress,
+                pageSize,
+                pageNumber: 0,
+            }
+        );
+        const resp = (await takeFirst(iterator)) as any;
+
+        if (!resp || resp.error || !resp.data) {
+            throw new Error(resp?.error_message || 'Failed to fetch transfers');
         }
-    );
-    const resp = (await takeFirst(iterator)) as any;
 
-    if (!resp.data || resp.error) {
-        throw new Error(resp.error_message || 'Failed to fetch transfers');
+        // Map SDK response to legacy TransferItem format
+        const items = (resp.data.items || [])
+            .filter(
+                (item: any) =>
+                    item.contract_address &&
+                    item.contract_address.toLowerCase() === tokenAddress.toLowerCase()
+            )
+            .map((item: any) => ({
+                block_signed_at: item.block_signed_at
+                    ? item.block_signed_at instanceof Date
+                        ? item.block_signed_at.toISOString()
+                        : String(item.block_signed_at)
+                    : '',
+                tx_hash: item.tx_hash || '',
+                successful: item.successful ?? true,
+                from_address: item.from_address as `0x${string}`,
+                to_address: item.to_address as `0x${string}`,
+                value_quote: item.value_quote || 0,
+                transfers: (item.transfers || []).map((transfer: any) => ({
+                    delta: transfer.delta?.toString() || '0',
+                    delta_quote: transfer.delta_quote || null,
+                    contract_decimals: transfer.contract_decimals || 18,
+                    contract_address: transfer.contract_address as `0x${string}`,
+                    transfer_type: (transfer.transfer_type === 'transfer-in' ? 'IN' : 'OUT') as 'IN' | 'OUT',
+                    to_address: transfer.to_address as `0x${string}`,
+                    from_address: transfer.from_address as `0x${string}`,
+                    log_index: (transfer as any).log_index || 0,
+                })),
+            }));
+
+        return items;
+    } catch (error) {
+        console.error(`getHolderTransfers error for ${walletAddress}:`, error);
+        // Return empty array instead of throwing to prevent cascading failures
+        return [];
     }
-
-    // Map SDK response to legacy TransferItem format
-    return (resp.data.items || [])
-        .filter(
-            (item: any) =>
-                item.contract_address &&
-                item.contract_address.toLowerCase() === tokenAddress.toLowerCase()
-        )
-        .map((item: any) => ({
-            block_signed_at: item.block_signed_at
-                ? item.block_signed_at instanceof Date
-                    ? item.block_signed_at.toISOString()
-                    : String(item.block_signed_at)
-                : '',
-            tx_hash: item.tx_hash || '',
-            successful: item.successful ?? true,
-            from_address: item.from_address as `0x${string}`,
-            to_address: item.to_address as `0x${string}`,
-            value_quote: item.value_quote || 0,
-            transfers: (item.transfers || []).map((transfer: any) => ({
-                delta: transfer.delta?.toString() || '0',
-                delta_quote: transfer.delta_quote || null,
-                contract_decimals: transfer.contract_decimals || 18,
-                contract_address: transfer.contract_address as `0x${string}`,
-                transfer_type: (transfer.transfer_type === 'transfer-in' ? 'IN' : 'OUT') as 'IN' | 'OUT',
-                to_address: transfer.to_address as `0x${string}`,
-                from_address: transfer.from_address as `0x${string}`,
-                log_index: (transfer as any).log_index || 0,
-            })),
-        }));
 }
 
 /**
@@ -353,51 +374,57 @@ export async function getGmEvents(
     gmContractAddress: string,
     pageSize = 200
 ): Promise<GmEventItem[]> {
-    const goldrush = getClient();
+    try {
+        const goldrush = getClient();
 
-    const resp = await goldrush.BaseService.getLogEventsByAddressByPage(
-        CHAIN,
-        gmContractAddress,
-        {
-            startingBlock: 1, // Base chain genesis block
-            endingBlock: 'latest',
-            pageSize,
-            pageNumber: 0,
+        const resp = await goldrush.BaseService.getLogEventsByAddressByPage(
+            CHAIN,
+            gmContractAddress,
+            {
+                startingBlock: 1, // Base chain genesis block
+                endingBlock: 'latest',
+                pageSize,
+                pageNumber: 0,
+            }
+        );
+
+        if (!resp || resp.error || !resp.data) {
+            throw new Error(resp?.error_message || 'Failed to fetch GM events');
         }
-    );
 
-    if (!resp.data || resp.error) {
-        throw new Error(resp.error_message || 'Failed to fetch GM events');
+        // Map SDK response to expected format
+        // Filter for GMed events (in case there are other events from the contract)
+        const allItems = (resp.data.items || [])
+            .filter((item: any) => item.decoded?.name === 'GMed')
+            .map((item: any) => ({
+                block_signed_at: item.block_signed_at
+                    ? item.block_signed_at instanceof Date
+                        ? item.block_signed_at.toISOString()
+                        : String(item.block_signed_at)
+                    : '',
+                tx_hash: item.tx_hash || '',
+                log_events: [
+                    {
+                        decoded: item.decoded
+                            ? {
+                                  name: item.decoded.name || '',
+                                  params: (item.decoded.params || []).map((param: any) => ({
+                                      name: param.name || '',
+                                      type: param.type || '',
+                                      indexed: param.indexed ?? false,
+                                      decoded: param.decoded ?? false,
+                                      value: param.value || '',
+                                  })),
+                              }
+                            : null,
+                    },
+                ],
+            }));
+
+        return allItems;
+    } catch (error) {
+        console.error(`getGmEvents error for ${gmContractAddress}:`, error);
+        // Return empty array instead of throwing to prevent cascading failures
+        return [];
     }
-
-    // Map SDK response to expected format
-    // Filter for GMed events (in case there are other events from the contract)
-    const allItems = (resp.data.items || [])
-        .filter((item) => item.decoded?.name === 'GMed')
-        .map((item) => ({
-            block_signed_at: item.block_signed_at
-                ? item.block_signed_at instanceof Date
-                    ? item.block_signed_at.toISOString()
-                    : String(item.block_signed_at)
-                : '',
-            tx_hash: item.tx_hash || '',
-            log_events: [
-                {
-                    decoded: item.decoded
-                        ? {
-                              name: item.decoded.name || '',
-                              params: (item.decoded.params || []).map((param) => ({
-                                  name: param.name || '',
-                                  type: param.type || '',
-                                  indexed: param.indexed ?? false,
-                                  decoded: param.decoded ?? false,
-                                  value: param.value || '',
-                              })),
-                          }
-                        : null,
-                },
-            ],
-        }));
-
-    return allItems;
 }

@@ -1,4 +1,4 @@
-import { getTokenHolders, getTokenTransfers, getGmEvents } from '@/lib/covalent';
+import { getTokenHoldersLegacy, getHolderTransfers, getGmEvents } from '@/lib/goldrush';
 import { getFarcasterProfiles } from '@/lib/neynar';
 import { getJesseTokenAddress } from '@/lib/config';
 import { buildBehaviorMap } from '@/utils/holders';
@@ -25,23 +25,41 @@ export interface HolderSnapshot {
     };
 }
 
+const GM_CONTRACT_ADDRESS =
+    process.env.NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS ||
+    process.env.JESSE_GM_CONTRACT_ADDRESS;
+
 export async function fetchHolderSnapshot(limit = 250): Promise<HolderSnapshot> {
     try {
-        const [holdersRaw, transfers, gmEvents] = await Promise.all([
-            getTokenHolders(limit),
-            getTokenTransfers(800),
-            getGmEvents(400),
-        ]);
-
         const tokenAddress = getJesseTokenAddress();
-        const decimals = holdersRaw[0]?.contract_decimals ?? 18;
-        const totalSupply = holdersRaw[0] ? toUnits(holdersRaw[0].total_supply, decimals) : 0;
-        const behaviorMap = buildBehaviorMap(transfers, tokenAddress);
-        const gmMap = buildGmStreakMap(gmEvents);
-        const farcasterMap = await getFarcasterProfiles(
-            holdersRaw.map((holder) => holder.address.toLowerCase() as `0x${string}`)
+        
+        if (!GM_CONTRACT_ADDRESS) {
+            throw new Error('Missing NEXT_PUBLIC_JESSE_GM_CONTRACT_ADDRESS environment variable');
+        }
+
+        // Get top holders first
+        const holdersRaw = await getTokenHoldersLegacy(limit);
+        
+        // Get transfers for top 30 holders (to avoid too many API calls)
+        const topHolders = holdersRaw.slice(0, 30);
+        const transferPromises = topHolders.map((holder) =>
+            getHolderTransfers(holder.address, tokenAddress, 30)
         );
-        const whaleCutoff = Math.max(1, Math.floor(holdersRaw.length * 0.01));
+        const allTransfers = await Promise.all(transferPromises);
+        const transfers = allTransfers.flat();
+        
+        // Get GM events
+        const gmEvents = await getGmEvents(GM_CONTRACT_ADDRESS, 400);
+
+    const decimals = holdersRaw[0]?.contract_decimals ?? 18;
+    const decimals = holdersRaw[0]?.contract_decimals ?? 18;
+    const totalSupply = holdersRaw[0] ? toUnits(holdersRaw[0].total_supply, decimals) : 0;
+    const behaviorMap = buildBehaviorMap(transfers, tokenAddress);
+    const gmMap = buildGmStreakMap(gmEvents);
+    const farcasterMap = await getFarcasterProfiles(
+        holdersRaw.map((holder) => holder.address.toLowerCase() as `0x${string}`)
+    );
+    const whaleCutoff = Math.max(1, Math.floor(holdersRaw.length * 0.01));
 
     const holders: HolderSummary[] = holdersRaw.map((item, index) => {
         const normalized = item.address.toLowerCase() as `0x${string}`;
@@ -87,7 +105,7 @@ export async function fetchHolderSnapshot(limit = 250): Promise<HolderSnapshot> 
         treasuryBalance: holders[0]?.balance ?? 0,
     };
 
-        return { holders, stats };
+    return { holders, stats };
     } catch (error) {
         console.error('fetchHolderSnapshot error:', error);
         throw error;
